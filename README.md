@@ -1,3 +1,22 @@
+# Grayjay with Alternative Metadata support
+
+This is a fork of [FUTO's PlatformPlayer](https://gitlab.futo.org/videostreaming/grayjay) (a.k.a. [Grayjay](https://grayjay.app/)), with support for what I call "alternative metadata".
+
+This version is required for [my fork of FUTO's YouTube source with DeArrow support](https://github.com/netux/grayjay-source-youtube).
+
+## Migrating from the original app
+
+1. Install this app
+2. On the original app, at the bottom, press More → Settings
+3. Scroll down to the Backup section, and press Export Data, and export all data as a zip file
+    - Make sure to give the file a name via the text field on the bottom of your screen, otherwise it will be saved as (invalid).zip and you may have trouble importing it into the other app.
+4. On your preferred file explorer app, locate the file you just exported and look for an option to "Open with Grayjay (with Alternative Metadata)"
+5. Let the import go through
+
+Below is the original README from FUTO:
+
+---
+
 # PlatformPlayer
 
 The FUTO media app endeavours creating infrastructure for creators to have their content hosted by someone else but at the same time having creators retain full ownership of their content. We want creators to feel like they are publishing to the world, and we want multiple indexers competing with each other to do a good job connecting consumers to creators and their content.
