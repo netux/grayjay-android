@@ -7,6 +7,8 @@ import com.futo.platformplayer.api.media.models.contents.IPlatformContent
  * A search result representing a video (overview data)
  */
 interface IPlatformVideo : IPlatformContent {
+    val alternativeName: String?;
+
     val thumbnails: Thumbnails;
 
     val duration: Long;

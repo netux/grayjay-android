@@ -21,6 +21,7 @@ import java.time.OffsetDateTime
 open class SerializedPlatformVideoDetails(
     override val id: PlatformID,
     override val name: String,
+    override val alternativeName: String?,
     override val thumbnails: Thumbnails,
     override val author: PlatformAuthorLink,
     @kotlinx.serialization.Serializable(with = OffsetDateTimeNullableSerializer::class)
@@ -63,6 +64,7 @@ open class SerializedPlatformVideoDetails(
             return SerializedPlatformVideoDetails(
                 video.id,
                 video.name,
+                video.alternativeName,
                 video.thumbnails,
                 video.author,
                 video.datetime,

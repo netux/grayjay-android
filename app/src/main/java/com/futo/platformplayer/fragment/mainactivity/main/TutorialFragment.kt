@@ -117,6 +117,7 @@ class TutorialFragment : MainFragment() {
     class TutorialVideo(
         uuid: String,
         override val name: String,
+        override val alternativeName: String?,
         override val description: String,
         thumbnailUrl: String,
         videoUrl: String,
@@ -155,6 +156,7 @@ class TutorialFragment : MainFragment() {
             TutorialVideo(
                 uuid = "228be579-ec52-4d93-b9eb-ca74ec08c58a",
                 name = "How to install",
+                alternativeName = null,
                 description = "Learn how to install Grayjay.",
                 thumbnailUrl = "https://releases.grayjay.app/tutorials/how-to-install.jpg",
                 videoUrl = "https://releases.grayjay.app/tutorials/how-to-install.mp4",
@@ -163,6 +165,7 @@ class TutorialFragment : MainFragment() {
             TutorialVideo(
                 uuid = "3b99ebfe-2640-4643-bfe0-a0cf04261fc5",
                 name = "Getting started",
+                alternativeName = null,
                 description = "Learn how to get started with Grayjay.",
                 thumbnailUrl = "https://releases.grayjay.app/tutorials/getting-started.jpg",
                 videoUrl = "https://releases.grayjay.app/tutorials/getting-started.mp4",
@@ -171,6 +174,7 @@ class TutorialFragment : MainFragment() {
             TutorialVideo(
                 uuid = "793aa009-516c-4581-b82f-a8efdfef4c27",
                 name = "Is Grayjay free?",
+                alternativeName = null,
                 description = "Learn how Grayjay is monetized.",
                 thumbnailUrl = "https://releases.grayjay.app/tutorials/pay.jpg",
                 videoUrl = "https://releases.grayjay.app/tutorials/pay.mp4",
@@ -182,6 +186,7 @@ class TutorialFragment : MainFragment() {
             TutorialVideo(
                 uuid = "d2238d88-4252-4a91-a12d-b90c049bb7cf",
                 name = "Searching",
+                alternativeName = null,
                 description = "Learn about searching in Grayjay.",
                 thumbnailUrl = "https://releases.grayjay.app/tutorials/search.jpg",
                 videoUrl = "https://releases.grayjay.app/tutorials/search.mp4",
@@ -190,6 +195,7 @@ class TutorialFragment : MainFragment() {
             TutorialVideo(
                 uuid = "d2238d88-4252-4a91-a12d-b90c049bb7cf",
                 name = "Comments",
+                alternativeName = null,
                 description = "Learn about Polycentric comments in Grayjay.",
                 thumbnailUrl = "https://releases.grayjay.app/tutorials/polycentric.jpg",
                 videoUrl = "https://releases.grayjay.app/tutorials/polycentric.mp4",
@@ -198,6 +204,7 @@ class TutorialFragment : MainFragment() {
             TutorialVideo(
                 uuid = "94d36959-e3fc-4c24-a988-89147067a179",
                 name = "Casting",
+                alternativeName = null,
                 description = "Learn about casting in Grayjay.",
                 thumbnailUrl = "https://releases.grayjay.app/tutorials/how-to-cast.jpg",
                 videoUrl = "https://releases.grayjay.app/tutorials/how-to-cast.mp4",

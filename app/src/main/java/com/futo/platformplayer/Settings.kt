@@ -508,6 +508,10 @@ class Settings : FragmentedStorageFileJson() {
         @FormField(R.string.enable_video_cache, FieldForm.TOGGLE, R.string.cache_to_quickly_load_previously_fetched_videos, 0)
         @Serializable(with = FlexibleBooleanSerializer::class)
         var videoCache: Boolean = true;
+
+        @FormField(R.string.show_alternative_metadata_by_default_label, FieldForm.TOGGLE, R.string.show_alternative_metadata_by_default_description, 0)
+        @Serializable(with = FlexibleBooleanSerializer::class)
+        var showAlternativeMetadataByDefault: Boolean = true;
     }
 
     @FormField(R.string.casting, "group", R.string.configure_casting, 9)

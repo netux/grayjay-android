@@ -14,18 +14,39 @@ class Thumbnails {
         sources = thumbnails.filter {it.url != null} .sortedBy { it.quality }.toTypedArray();
     }
 
-    fun getHQThumbnail() : String? {
-        return sources.lastOrNull()?.url;
+    fun getHQThumbnail(alternative: Boolean = false) : String? {
+        var result : Thumbnail? = null;
+
+        if (alternative) {
+            result = sources.reduceOrNull { acc, cur ->  if (cur.type === ThumbnailType.ALTERNATIVE && cur.quality > acc.quality) cur else acc }
+        }
+
+        if (result == null) {
+            result = sources.reduceOrNull { acc, cur ->  if (cur.type === ThumbnailType.MAIN && cur.quality > acc.quality) cur else acc }
+        }
+
+        return result?.url;
     }
-    fun getLQThumbnail() : String? {
-        return sources.firstOrNull()?.url;
+    fun getLQThumbnail(alternative: Boolean = false) : String? {
+        var result : Thumbnail? = null;
+
+        if (alternative) {
+            result = sources.reduceOrNull { acc, cur ->  if (cur.type === ThumbnailType.ALTERNATIVE && cur.quality < acc.quality) cur else acc }
+        }
+
+        if (result == null) {
+            result = sources.reduceOrNull { acc, cur ->  if (cur.type === ThumbnailType.MAIN && cur.quality < acc.quality) cur else acc }
+        }
+
+        return result?.url;
     }
-    fun getMinimumThumbnail(quality: Int): String? {
-        return sources.firstOrNull { it.quality >= quality }?.url ?: getHQThumbnail();
+    fun getMinimumThumbnail(quality: Int, alternative: Boolean = false): String? {
+        return sources.firstOrNull { it.quality >= quality }?.url ?: getHQThumbnail(alternative);
     }
 
     fun hasMultiple() = sources.size > 1;
 
+    fun hasAlternative() = sources.any { it.type == ThumbnailType.ALTERNATIVE };
 
     companion object {
         fun fromV8(config: IV8PluginConfig, value: V8ValueObject): Thumbnails {
@@ -37,13 +58,15 @@ class Thumbnails {
     }
 }
 @kotlinx.serialization.Serializable
-data class Thumbnail(val url : String?, val quality : Int = 0) {
+data class Thumbnail(val url : String?, val quality : Int = 0, val type : ThumbnailType = ThumbnailType.MAIN) {
 
     companion object {
         fun fromV8(value: V8ValueObject): Thumbnail {
             return Thumbnail(
                 value.getString("url"),
-                value.getInteger("quality"));
+                value.getInteger("quality"),
+                if (value.has("type")) ThumbnailType.fromValue(value.getString("type"))!! else ThumbnailType.MAIN
+            );
         }
     }
 };

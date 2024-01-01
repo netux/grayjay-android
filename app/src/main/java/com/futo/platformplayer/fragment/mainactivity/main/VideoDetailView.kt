@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
 import android.graphics.Bitmap
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.Rect
 import android.graphics.drawable.Animatable
 import android.graphics.drawable.BitmapDrawable
@@ -189,6 +191,9 @@ class VideoDetailView : ConstraintLayout {
     private val _description: TextView;
     private val _descriptionContainer: LinearLayout;
 
+    private val _buttonToggleAlternativeMetadata: ImageButton;
+    private val _buttonToggleAlternativeMetadataMinimized: ImageButton;
+
     private val _platform: PlatformIndicator;
 
     private val _channelName: TextView;
@@ -264,6 +269,7 @@ class VideoDetailView : ConstraintLayout {
     private var _lastAudioSource: IAudioSource? = null;
     private var _lastSubtitleSource: ISubtitleSource? = null;
     private var _isCasting: Boolean = false;
+    private var _isAlternativeMetadataShown: Boolean = Settings.instance.browsing.showAlternativeMetadataByDefault;
 
     var isPlaying: Boolean = false
         private set;
@@ -316,6 +322,9 @@ class VideoDetailView : ConstraintLayout {
         _title = findViewById(R.id.videodetail_title);
         _subTitle = findViewById(R.id.videodetail_meta);
         _platform = findViewById(R.id.videodetail_platform);
+        _buttonToggleAlternativeMetadata = findViewById(R.id.button_toggle_alternative_metadata);
+        _buttonToggleAlternativeMetadataMinimized = findViewById(R.id.button_toggle_alternative_metadata_minimized);
+
         _description = findViewById(R.id.videodetail_description);
         _descriptionContainer = findViewById(R.id.videodetail_description_container);
         _channelName = findViewById(R.id.videodetail_channel_name);
@@ -370,6 +379,9 @@ class VideoDetailView : ConstraintLayout {
         _monetization = findViewById(R.id.monetization);
         _player.attachPlayer();
 
+
+        _buttonToggleAlternativeMetadata.setOnClickListener(::toggleAlternativeMetadata);
+        _buttonToggleAlternativeMetadataMinimized.setOnClickListener(:: toggleAlternativeMetadata);
 
         _buttonSubscribe.onSubscribed.subscribe {
             UISlideOverlays.showSubscriptionOptionsOverlay(it, _overlayContainer);
@@ -1042,12 +1054,12 @@ class VideoDetailView : ConstraintLayout {
 
         _toggleCommentType.setValue(false, false);
 
-        _title.text = video.name;
+        _title.text = getVideoTitle(video, _isAlternativeMetadataShown);
         _rating.visibility = View.GONE;
         _layoutRating.visibility = View.GONE;
         _textComments.visibility = View.VISIBLE;
 
-        _minimize_title.text = video.name;
+        _minimize_title.text = getVideoTitle(video, _isAlternativeMetadataShown);
         _minimize_meta.text = video.author.name;
 
         val subTitleSegments : ArrayList<String> = ArrayList();
@@ -1076,6 +1088,13 @@ class VideoDetailView : ConstraintLayout {
         }
         setDescription("".fixHtmlWhitespace());
         _player.setMetadata(video.name, video.author.name);
+
+        if (video.alternativeName != null || video.thumbnails.hasAlternative()) {
+            _buttonToggleAlternativeMetadata.visibility = VISIBLE;
+            setAlternativeMetadataButtonState(_buttonToggleAlternativeMetadata, _isAlternativeMetadataShown)
+        } else {
+            _buttonToggleAlternativeMetadata.visibility = GONE;
+        }
 
         _buttonSubscribe.setSubscribeChannel(video.author.url);
 
@@ -1129,6 +1148,7 @@ class VideoDetailView : ConstraintLayout {
             _lastVideoSource = null;
             _lastAudioSource = null;
             _lastSubtitleSource = null;
+            _isAlternativeMetadataShown = Settings.instance.browsing.showAlternativeMetadataByDefault;
         }
 
         if(videoDetail.datetime != null && videoDetail.datetime!! > OffsetDateTime.now())
@@ -1226,7 +1246,7 @@ class VideoDetailView : ConstraintLayout {
         updateCommentType(true);
 
         //UI
-        _title.text = video.name;
+        _title.text = getVideoTitle(video, _isAlternativeMetadataShown);
         _channelName.text = video.author.name;
         if(video.author.subscribers != null) {
             _channelMeta.text = if((video.author.subscribers ?: 0) > 0) video.author.subscribers!!.toHumanNumber() + " " + context.getString(R.string.subscribers) else "";
@@ -1244,8 +1264,15 @@ class VideoDetailView : ConstraintLayout {
                 _monetization.setPlatformMembership(null, null);
         }
 
-        _minimize_title.text = video.name;
+        _minimize_title.text = getVideoTitle(video, _isAlternativeMetadataShown);
         _minimize_meta.text = video.author.name;
+
+        if (video.alternativeName != null || video.thumbnails.hasAlternative()) {
+            _buttonToggleAlternativeMetadata.visibility = VISIBLE;
+            setAlternativeMetadataButtonState(_buttonToggleAlternativeMetadata, _isAlternativeMetadataShown)
+        } else {
+            _buttonToggleAlternativeMetadata.visibility = GONE;
+        }
 
         _buttonSubscribe.setSubscribeChannel(video.author.url);
         setDescription(video.description.fixHtmlLinks());
@@ -2056,6 +2083,28 @@ class VideoDetailView : ConstraintLayout {
     }
 
     //UI Actions
+    private fun toggleAlternativeMetadata(view: View) {
+        _isAlternativeMetadataShown = !_isAlternativeMetadataShown;
+
+        _title.text = getVideoTitle(video as IPlatformVideo, _isAlternativeMetadataShown);
+        _minimize_title.text = getVideoTitle(video as IPlatformVideo, _isAlternativeMetadataShown);
+
+        setAlternativeMetadataButtonState(_buttonToggleAlternativeMetadata, _isAlternativeMetadataShown);
+    }
+
+    private fun getVideoTitle(video: IPlatformVideo, alternative: Boolean): String {
+        return if (alternative) (video.alternativeName ?: video.name) else video.name;
+    }
+
+    private fun setAlternativeMetadataButtonState(button: ImageButton, active: Boolean) {
+        // Simulate grayscale effect from YouTube DeArrow extension
+        val colorMatrix = ColorMatrix();
+        if (!active) {
+            colorMatrix.setSaturation(0F);
+        }
+        button.colorFilter = ColorMatrixColorFilter(colorMatrix);
+    }
+
     private fun setDescription(text: Spanned) {
         _container_content_description.load(text);
         _description.text = text;

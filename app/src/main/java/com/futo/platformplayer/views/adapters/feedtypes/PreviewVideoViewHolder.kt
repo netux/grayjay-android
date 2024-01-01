@@ -34,9 +34,14 @@ class PreviewVideoViewHolder : ContentPreviewViewHolder {
         view.onChannelClicked.subscribe(onChannelClicked::emit);
         view.onAddToClicked.subscribe(onAddToClicked::emit);
         view.onAddToQueueClicked.subscribe(onAddToQueueClicked::emit);
+        view.onToggleAlternativeMetadataClicked.subscribe(::toggleAlternativeMetadata);
         view.onLongPress.subscribe(onLongPress::emit);
     }
 
+    private fun toggleAlternativeMetadata(video: IPlatformVideo) {
+        view.isAlternativeMetadataShown = !view.isAlternativeMetadataShown;
+        view.bind(video);
+    }
 
     override fun bind(content: IPlatformContent) = view.bind(content);
 

@@ -48,6 +48,7 @@ class HistoryVideo {
             val video = resolve?.invoke(url) ?: SerializedPlatformVideo(
                 id = PlatformID.asUrlID(url),
                 name = name,
+                alternativeName = name,
                 thumbnails = Thumbnails(),
                 author = PlatformAuthorLink(PlatformID.NONE, "Unknown", ""),
                 datetime = null,

@@ -11,13 +11,13 @@ class GlideHelper {
 
 
     companion object {
-        fun ImageView.loadThumbnails(thumbnails: Thumbnails, isHQ: Boolean = true, continuation: ((RequestBuilder<Drawable>) -> Unit)? = null) {
-            val url = if(isHQ) thumbnails.getHQThumbnail() ?: thumbnails.getLQThumbnail() else thumbnails.getLQThumbnail();
+        fun ImageView.loadThumbnails(thumbnails: Thumbnails, isHQ: Boolean = true, isAlternative: Boolean = false, continuation: ((RequestBuilder<Drawable>) -> Unit)? = null) {
+            val url = if(isHQ) thumbnails.getHQThumbnail(isAlternative) ?: thumbnails.getLQThumbnail(isAlternative) else thumbnails.getLQThumbnail(isAlternative);
 
             val req = Glide.with(this).load(url);
 
             if (thumbnails.hasMultiple() && false) { //TODO: Resolve issue where fallback triggered on second loads?
-                val fallbackUrl = if (isHQ) thumbnails.getLQThumbnail() else thumbnails.getHQThumbnail();
+                val fallbackUrl = if (isHQ) thumbnails.getLQThumbnail(isAlternative) else thumbnails.getHQThumbnail(isAlternative);
                 if (continuation != null)
                     req.error(continuation(Glide.with(this).load(fallbackUrl)))
                 else

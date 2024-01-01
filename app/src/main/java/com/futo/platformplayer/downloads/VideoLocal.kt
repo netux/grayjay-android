@@ -41,6 +41,7 @@ class VideoLocal: IPlatformVideoDetails, IStoreItem {
     override val contentType: ContentType get() = ContentType.MEDIA;
     override val id: PlatformID get() = videoSerialized.id;
     override val name: String get() = videoSerialized.name;
+    override val alternativeName: String? get() = videoSerialized.alternativeName;
     override val description: String get() = videoSerialized.description;
 
     override val thumbnails: Thumbnails get() = videoSerialized.thumbnails;

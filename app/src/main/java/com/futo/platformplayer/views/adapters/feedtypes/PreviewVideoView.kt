@@ -2,6 +2,8 @@ package com.futo.platformplayer.views.adapters.feedtypes
 
 import android.animation.ObjectAnimator
 import android.content.Context
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.util.Log
 import android.view.View
 import android.widget.FrameLayout
@@ -10,6 +12,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.bumptech.glide.Glide
 import com.futo.platformplayer.R
+import com.futo.platformplayer.Settings
 import com.futo.platformplayer.api.media.PlatformID
 import com.futo.platformplayer.api.media.models.PlatformAuthorLink
 import com.futo.platformplayer.api.media.models.contents.IPlatformContent
@@ -62,6 +65,7 @@ open class PreviewVideoView : LinearLayout {
 
     protected val _button_add_to_queue : View;
     protected val _button_add_to : View;
+    protected val _button_toggle_alternative_metadata : View;
 
     protected val _exoPlayer: PlayerManager?;
 
@@ -80,9 +84,11 @@ open class PreviewVideoView : LinearLayout {
     val onChannelClicked = Event1<PlatformAuthorLink>();
     val onAddToClicked = Event1<IPlatformVideo>();
     val onAddToQueueClicked = Event1<IPlatformVideo>();
+    val onToggleAlternativeMetadataClicked = Event1<IPlatformVideo>();
 
     var currentVideo: IPlatformVideo? = null
         private set
+    var isAlternativeMetadataShown: Boolean = Settings.instance.browsing.showAlternativeMetadataByDefault
 
     val content: IPlatformContent? get() = currentVideo;
     val shouldShowTimeBar: Boolean
@@ -105,6 +111,7 @@ open class PreviewVideoView : LinearLayout {
         _containerLive = findViewById(R.id.thumbnail_live_container);
         _button_add_to_queue = findViewById(R.id.button_add_to_queue);
         _button_add_to = findViewById(R.id.button_add_to);
+        _button_toggle_alternative_metadata = findViewById(R.id.button_toggle_alternative_metadata);
         _imageNeopassChannel = findViewById(R.id.image_neopass_channel);
         _layoutDownloaded = findViewById(R.id.layout_downloaded);
         _timeBar = findViewById(R.id.time_bar)
@@ -124,6 +131,7 @@ open class PreviewVideoView : LinearLayout {
         _textVideoMetadata.setOnClickListener { currentVideo?.let { onChannelClicked.emit(it.author) }  };
         _button_add_to.setOnClickListener { currentVideo?.let { onAddToClicked.emit(it) } };
         _button_add_to_queue.setOnClickListener { currentVideo?.let { onAddToQueueClicked.emit(it) } };
+        _button_toggle_alternative_metadata.setOnClickListener { currentVideo?.let { onToggleAlternativeMetadataClicked.emit(it) } };
 
     }
 
@@ -183,7 +191,7 @@ open class PreviewVideoView : LinearLayout {
 
         _imageChannel?.clipToOutline = true;
 
-        _textVideoName.text = content.name;
+        _textVideoName.text = if (isAlternativeMetadataShown && content is IPlatformVideo) content.alternativeName ?: content.name else content.name;
         _layoutDownloaded.visibility = if (StateDownloads.instance.isDownloaded(content.id)) VISIBLE else GONE;
 
         _platformIndicator.setPlatformFromClientID(content.id.pluginId);
@@ -209,7 +217,7 @@ open class PreviewVideoView : LinearLayout {
 
             currentVideo = video
 
-            _imageVideo.loadThumbnails(video.thumbnails, true) {
+            _imageVideo.loadThumbnails(video.thumbnails, true, isAlternativeMetadataShown) {
                 it.placeholder(R.drawable.placeholder_video_thumbnail)
                     .crossfade()
                     .into(_imageVideo);
@@ -241,6 +249,15 @@ open class PreviewVideoView : LinearLayout {
                     timeBar.visibility = GONE
                 }
             }
+
+            _button_toggle_alternative_metadata.visibility = if (video.alternativeName != null || video.thumbnails.hasAlternative()) VISIBLE else GONE;
+
+            // Simulate grayscale effect from YouTube DeArrow extension
+            val colorMatrix = ColorMatrix();
+            if (!isAlternativeMetadataShown) {
+                colorMatrix.setSaturation(0F);
+            }
+            (_button_toggle_alternative_metadata as ImageView).colorFilter = ColorMatrixColorFilter(colorMatrix);
         }
         else {
             currentVideo = null;

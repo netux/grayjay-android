@@ -264,6 +264,22 @@
                 app:layout_constraintRight_toRightOf="parent"
                 android:layout_marginStart="4dp"/>
 
+            <ImageButton
+                android:id="@+id/button_toggle_alternative_metadata"
+                android:layout_width="wrap_content"
+                android:layout_height="27dp"
+                android:src="@drawable/ic_dearrow_24dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:paddingLeft="7dp"
+                android:paddingRight="7dp"
+                android:layout_marginLeft="7dp"
+                android:scaleType="fitCenter"
+                android:background="@drawable/edit_text_background"
+                android:contentDescription="@string/toggle_alternative_metadata"
+                app:layout_constraintLeft_toRightOf="@id/button_add_to_queue"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
         </androidx.constraintlayout.widget.ConstraintLayout>
     </LinearLayout>
 

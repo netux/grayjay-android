@@ -271,6 +271,7 @@
     <string name="delete_this_profile">Delete this profile</string>
     <string name="install_by_url">Install by URL</string>
     <string name="cache_to_quickly_load_previously_fetched_videos">Cache to quickly load previously fetched videos</string>
+    <string name="show_alternative_metadata_by_default_description">Show alternative titles and thumbnails for videos when the source provides one (e.g. from DeArrow)</string>
     <string name="a_list_of_user_reported_and_self_reported_issues">A list of user-reported and self-reported issues</string>
     <string name="also_removes_any_data_related_plugin_like_login_or_settings">Also removes any data related plugin like login or settings</string>
     <string name="announcement">Announcement</string>
@@ -326,6 +327,7 @@
     <string name="deletes_license_keys_from_app">Deletes license keys from app</string>
     <string name="download_when">Download when</string>
     <string name="enable_video_cache">Enable Video Cache</string>
+    <string name="show_alternative_metadata_by_default_label">Show alternative metadata by default</string>
     <string name="enable_casting">Enable casting</string>
     <string name="experimental_background_update_for_subscriptions_cache">Experimental background update for subscriptions cache</string>
     <string name="export_data">Export Data</string>
@@ -728,6 +730,7 @@
     <string name="do_you_want_to_see_the_tutorials_you_can_find_them_at_any_time_through_the_more_button">Do you want to see the tutorials? You can find them at any time through the more button.</string>
     <string name="add_creator">Add Creators</string>
     <string name="select">Select</string>
+    <string name="toggle_alternative_metadata">Toggle Alternative Title/Thumbnail</string>
     <string-array name="home_screen_array">
         <item>Recommendations</item>
         <item>Subscriptions</item>
