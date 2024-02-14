@@ -17,6 +17,8 @@ import org.json.JSONObject
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.Socket
 import java.security.cert.X509Certificate
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
@@ -303,17 +305,18 @@ class ChromecastCastingDevice : CastingDevice {
             _thread = Thread {
                 connectionState = CastConnectionState.CONNECTING;
 
+                var connectedSocket: Socket? = null
                 while (_scopeIO?.isActive == true) {
                     try {
-                        val connectedSocket = getConnectedSocket(adrs.toList(), port);
-                        if (connectedSocket == null) {
-                            Thread.sleep(3000);
+                        val resultSocket = getConnectedSocket(adrs.toList(), port);
+                        if (resultSocket == null) {
+                            Thread.sleep(1000);
                             continue;
                         }
 
+                        connectedSocket = resultSocket
                         usedRemoteAddress = connectedSocket.inetAddress;
                         localAddress = connectedSocket.localAddress;
-                        connectedSocket.close();
                         break;
                     } catch (e: Throwable) {
                         Logger.w(TAG, "Failed to get setup initial connection to ChromeCast device.", e)
@@ -325,6 +328,8 @@ class ChromecastCastingDevice : CastingDevice {
 
                 val factory = sslContext.socketFactory;
 
+                val address = InetSocketAddress(usedRemoteAddress, port)
+
                 //Connection loop
                 while (_scopeIO?.isActive == true) {
                     Logger.i(TAG, "Connecting to Chromecast.");
@@ -332,7 +337,16 @@ class ChromecastCastingDevice : CastingDevice {
 
                     try {
                         _socket?.close()
-                        _socket = factory.createSocket(usedRemoteAddress, port) as SSLSocket;
+                        if (connectedSocket != null) {
+                            Logger.i(TAG, "Using connected socket.")
+                            _socket = factory.createSocket(connectedSocket, connectedSocket.inetAddress.hostAddress, connectedSocket.port, true) as SSLSocket
+                            connectedSocket = null
+                        } else {
+                            Logger.i(TAG, "Using new socket.")
+                            val s = Socket().apply { this.connect(address, 2000) }
+                            _socket = factory.createSocket(s, s.inetAddress.hostAddress, s.port, true) as SSLSocket
+                        }
+
                         _socket?.startHandshake();
                         Logger.i(TAG, "Successfully connected to Chromecast at $usedRemoteAddress:$port");
 
@@ -347,7 +361,7 @@ class ChromecastCastingDevice : CastingDevice {
                         Logger.i(TAG, "Failed to connect to Chromecast.", e);
 
                         connectionState = CastConnectionState.CONNECTING;
-                        Thread.sleep(3000);
+                        Thread.sleep(1000);
                         continue;
                     }
 
@@ -363,7 +377,7 @@ class ChromecastCastingDevice : CastingDevice {
                         _socket?.close();
 
                         connectionState = CastConnectionState.CONNECTING;
-                        Thread.sleep(3000);
+                        Thread.sleep(1000);
                         continue;
                     }
 
@@ -415,7 +429,7 @@ class ChromecastCastingDevice : CastingDevice {
                     Logger.i(TAG, "Socket disconnected.");
 
                     connectionState = CastConnectionState.CONNECTING;
-                    Thread.sleep(3000);
+                    Thread.sleep(1000);
                 }
 
                 Logger.i(TAG, "Stopped connection loop.");
@@ -432,10 +446,11 @@ class ChromecastCastingDevice : CastingDevice {
                 while (_scopeIO?.isActive == true) {
                     try {
                         sendChannelMessage("sender-0", "receiver-0", "urn:x-cast:com.google.cast.tp.heartbeat", pingObject.toString());
-                        Thread.sleep(5000);
                     } catch (e: Throwable) {
                         Log.w(TAG, "Failed to send ping.");
                     }
+
+                    Thread.sleep(5000);
                 }
 
                 Logger.i(TAG, "Stopped ping loop.");

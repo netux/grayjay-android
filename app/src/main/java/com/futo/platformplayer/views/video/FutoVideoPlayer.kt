@@ -1,9 +1,12 @@
 package com.futo.platformplayer.views.video
 
 import android.content.Context
+import android.content.Intent
 import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.drawable.Drawable
+import android.media.AudioManager
+import android.net.Uri
 import android.util.AttributeSet
 import android.util.Log
 import android.util.TypedValue
@@ -119,6 +122,7 @@ class FutoVideoPlayer : FutoVideoPlayerBase {
     private var _currentChapterLoopActive = false;
     private var _currentChapterLoopId: Int = 0;
     private var _currentChapter: IChapter? = null;
+    private var _promptedForPermissions: Boolean = false;
 
 
     //Events
@@ -235,16 +239,38 @@ class FutoVideoPlayer : FutoVideoPlayerBase {
 
         gestureControl.setupTouchArea(_layoutControls, background);
         gestureControl.onSeek.subscribe { seekFromCurrent(it); };
-        gestureControl.onSoundAdjusted.subscribe { setVolume(it) };
-        gestureControl.onToggleFullscreen.subscribe { setFullScreen(!isFullScreen) };
-        gestureControl.onBrightnessAdjusted.subscribe {
-            if (it == 1.0f) {
-                _overlay_brightness.visibility = View.GONE;
+        gestureControl.onSoundAdjusted.subscribe {
+            if (Settings.instance.gestureControls.useSystemVolume) {
+                val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, (it * maxVolume).toInt(), 0)
             } else {
-                _overlay_brightness.visibility = View.VISIBLE;
-                _overlay_brightness.setBackgroundColor(Color.valueOf(0.0f, 0.0f, 0.0f, (1.0f - it)).toArgb());
+                setVolume(it)
             }
         };
+        gestureControl.onToggleFullscreen.subscribe { setFullScreen(!isFullScreen) };
+        gestureControl.onBrightnessAdjusted.subscribe {
+            if (Settings.instance.gestureControls.useSystemBrightness) {
+                setSystemBrightness(it)
+            } else {
+                if (it == 1.0f) {
+                    _overlay_brightness.visibility = View.GONE;
+                } else {
+                    _overlay_brightness.visibility = View.VISIBLE;
+                    _overlay_brightness.setBackgroundColor(Color.valueOf(0.0f, 0.0f, 0.0f, (1.0f - it)).toArgb());
+                }
+            }
+        };
+        gestureControl.onPan.subscribe { x, y ->
+            _videoView.translationX = x
+            _videoView.translationY = y
+        }
+        gestureControl.onZoom.subscribe {
+            _videoView.scaleX = it
+            _videoView.scaleY = it
+        }
+
+        gestureControl.setZoomPanEnabled(_videoView.videoSurfaceView!!)
 
         if(!isInEditMode) {
             _videoView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM;
@@ -405,6 +431,30 @@ class FutoVideoPlayer : FutoVideoPlayerBase {
         }
     }
 
+    private fun setSystemBrightness(brightness: Float) {
+        Log.i(TAG, "setSystemBrightness $brightness")
+        if (android.provider.Settings.System.canWrite(context)) {
+            Log.i(TAG, "setSystemBrightness canWrite $brightness")
+            android.provider.Settings.System.putInt(context.contentResolver, android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE, android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
+            android.provider.Settings.System.putInt(context.contentResolver, android.provider.Settings.System.SCREEN_BRIGHTNESS, (brightness * 255.0f).toInt().coerceAtLeast(1).coerceAtMost(255));
+        } else if (!_promptedForPermissions) {
+            Log.i(TAG, "setSystemBrightness prompt $brightness")
+            _promptedForPermissions = true
+            UIDialogs.showConfirmationDialog(context, "System brightness controls require explicit permission", action = {
+                openAndroidPermissionsMenu()
+            })
+        } else {
+            Log.i(TAG, "setSystemBrightness no permission?")
+            //No permissions but already prompted, ignore
+        }
+    }
+
+    private fun openAndroidPermissionsMenu() {
+        val intent = Intent(android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS)
+        intent.setData(Uri.parse("package:" + context.packageName))
+        context.startActivity(intent)
+    }
+
     fun updateNextPrevious() {
         val vidPrev = StatePlayer.instance.getPrevQueueItem(true);
         val vidNext = StatePlayer.instance.getNextQueueItem(true);
@@ -531,7 +581,7 @@ class FutoVideoPlayer : FutoVideoPlayerBase {
             _videoView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT;
 
             _videoControls_fullscreen.show();
-            videoControls.hide();
+            videoControls.hideImmediately();
         }
         else {
             val lp = background.layoutParams as ConstraintLayout.LayoutParams;
@@ -543,7 +593,7 @@ class FutoVideoPlayer : FutoVideoPlayerBase {
             _videoView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM;
 
             videoControls.show();
-            _videoControls_fullscreen.hide();
+            _videoControls_fullscreen.hideImmediately();
         }
 
         fitOrFill(fullScreen);
@@ -574,6 +624,7 @@ class FutoVideoPlayer : FutoVideoPlayerBase {
     }
 
     override fun onVideoSizeChanged(videoSize: VideoSize) {
+        gestureControl.resetZoomPan()
         _lastSourceFit = null;
         if(isFullScreen)
             fillHeight();
@@ -603,6 +654,10 @@ class FutoVideoPlayer : FutoVideoPlayerBase {
         }
     }
 
+    override fun onIsPlayingChanged(playing: Boolean) {
+        super.onIsPlayingChanged(playing)
+        updatePlayPause();
+    }
     override fun onPlaybackStateChanged(playbackState: Int) {
         Logger.v(TAG, "onPlaybackStateChanged $playbackState");
         updatePlayPause()
@@ -658,7 +713,7 @@ class FutoVideoPlayer : FutoVideoPlayerBase {
 
             val viewWidth = Math.min(metrics.widthPixels, metrics.heightPixels); //TODO: Get parent width. was this.width
             val deviceHeight = Math.max(metrics.widthPixels, metrics.heightPixels);
-            val maxHeight = deviceHeight * 0.6;
+            val maxHeight = deviceHeight * 0.4;
 
             val determinedHeight = if(w > h)
                 ((h * (viewWidth.toDouble() / w)).toInt())
@@ -730,8 +785,11 @@ class FutoVideoPlayer : FutoVideoPlayerBase {
         }
     }
 
-
     fun setGestureSoundFactor(soundFactor: Float) {
         gestureControl.setSoundFactor(soundFactor);
+    }
+
+    override fun onSurfaceSizeChanged(width: Int, height: Int) {
+        gestureControl.resetZoomPan()
     }
 }

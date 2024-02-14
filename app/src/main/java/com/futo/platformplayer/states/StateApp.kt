@@ -13,6 +13,7 @@ import android.net.NetworkRequest
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.util.DisplayMetrics
+import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
@@ -38,9 +39,9 @@ import com.futo.platformplayer.receivers.AudioNoisyReceiver
 import com.futo.platformplayer.services.DownloadService
 import com.futo.platformplayer.stores.FragmentedStorage
 import com.futo.platformplayer.stores.v2.ManagedStore
+import com.futo.platformplayer.views.ToastView
 import kotlinx.coroutines.*
 import java.io.File
-import java.time.OffsetDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.system.measureTimeMillis
@@ -380,12 +381,14 @@ class StateApp {
 
         Logger.i(TAG, "MainApp Starting: Initializing [Polycentric]");
         StatePolycentric.instance.load(context);
-        Logger.i(TAG, "MainApp Starting: Initializing [Saved]");
-        StateSaved.instance.load();
 
         Logger.i(TAG, "MainApp Starting: Initializing [Connectivity]");
         displayMetrics = context.resources.displayMetrics;
         ensureConnectivityManager(context);
+
+        Logger.i(TAG, "MainApp Starting: Cleaning up unused downloads");
+        StateDownloads.instance.cleanupDownloads();
+
 
         Logger.i(TAG, "MainApp Starting: Initializing [Telemetry]");
         if (!BuildConfig.DEBUG) {
@@ -422,8 +425,6 @@ class StateApp {
                 Logger.e(TAG, "Failed to load announcements.", e)
             }
         }
-
-        StateAnnouncement.instance.registerAnnouncement("fa4647d3-36fa-4c8c-832d-85b00fc72dca", "Disclaimer", "This is an early alpha build of the application, expect bugs and unfinished features.", AnnouncementType.DELETABLE, OffsetDateTime.now())
 
         if(SettingsDev.instance.developerMode && SettingsDev.instance.devServerSettings.devServerOnBoot)
             StateDeveloper.instance.runServer();
@@ -473,7 +474,11 @@ class StateApp {
         Logger.i(TAG, "MainApp Started: Initialize [Noisy]");
         _receiverBecomingNoisy?.let {
             _receiverBecomingNoisy = null;
-            context.unregisterReceiver(it);
+            try {
+                context.unregisterReceiver(it);
+            } catch (e: Throwable) {
+                Log.e(TAG, "Failed to unregister receiver.", e)
+            }
         }
         _receiverBecomingNoisy = AudioNoisyReceiver();
         context.registerReceiver(_receiverBecomingNoisy, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));
@@ -553,7 +558,6 @@ class StateApp {
         }
 
         StateAnnouncement.instance.registerDefaultHandlerAnnouncement();
-        StateAnnouncement.instance.registerDidYouKnow();
         Logger.i(TAG, "MainApp Started: Finished");
 
         StatePlaylists.instance.toMigrateCheck();
@@ -564,16 +568,18 @@ class StateApp {
         StateAnnouncement.instance.deleteAnnouncement("plugin-update")
 
         scopeOrNull?.launch(Dispatchers.IO) {
-            val updateAvailableCount = StatePlatform.instance.checkForUpdates()
+            val updateAvailable = StatePlatform.instance.checkForUpdates()
 
             withContext(Dispatchers.Main) {
-                if (updateAvailableCount > 0) {
-                    StateAnnouncement.instance.registerAnnouncement(
-                        "plugin-update",
-                        "Plugin updates available",
-                        "There are $updateAvailableCount plugin updates available.",
-                        AnnouncementType.SESSION_RECURRING
-                    )
+                if (updateAvailable.isNotEmpty()) {
+                    UIDialogs.appToast(
+                        ToastView.Toast(updateAvailable
+                            .map { " - " + it.name }
+                            .joinToString("\n"),
+                            true,
+                            null,
+                            "Plugin updates available"
+                        ));
                 }
             }
         }
@@ -638,7 +644,11 @@ class StateApp {
         Logger.i(TAG, "App ended");
         _receiverBecomingNoisy?.let {
             _receiverBecomingNoisy = null;
-            context.unregisterReceiver(it);
+            try {
+                context.unregisterReceiver(it);
+            } catch (e: Throwable) {
+                Log.e(TAG, "Failed to unregister receiver.", e)
+            }
         }
 
         Logger.i(TAG, "Unregistered network callback on connectivityManager.")

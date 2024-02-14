@@ -214,6 +214,7 @@
     <string name="videos">Videos</string>
     <string name="clear_history">Clear history</string>
     <string name="nothing_to_import">Nothing to import</string>
+    <string name="no_sources_installed">You have no sources installed, please add sources to use the app as intended.</string>
     <string name="enabling_lots_of_sources_can_reduce_the_loading_speed_of_your_application">Enabling lots of sources can reduce the loading speed of your application.</string>
     <string name="support">Support</string>
     <string name="membership">Membership</string>
@@ -346,6 +347,23 @@
     <string name="get_answers_to_common_questions">Get answers to common questions</string>
     <string name="give_feedback_on_the_application">Give feedback on the application</string>
     <string name="info">Info</string>
+    <string name="gesture_controls">Gesture controls</string>
+    <string name="volume_slider">Volume slider</string>
+    <string name="volume_slider_descr">Enable slide gesture to change volume</string>
+    <string name="brightness_slider">Brightness slider</string>
+    <string name="brightness_slider_descr">Enable slide gesture to change brightness</string>
+    <string name="toggle_full_screen">Toggle full screen</string>
+    <string name="toggle_full_screen_descr">Enable swipe gesture to toggle fullscreen</string>
+    <string name="system_brightness">System brightness</string>
+    <string name="system_brightness_descr">Gesture controls adjust system brightness</string>
+    <string name="restore_system_brightness">Restore system brightness</string>
+    <string name="restore_system_brightness_descr">Restore system brightness when exiting fullscreen</string>
+    <string name="zoom_option">Enable zoom</string>
+    <string name="zoom_option_descr">Enable two finger pinch zoom gesture</string>
+    <string name="pan_option">Enable pan</string>
+    <string name="pan_option_descr">Enable two finger pan gesture</string>
+    <string name="system_volume">System volume</string>
+    <string name="system_volume_descr">Gesture controls adjust system volume</string>
     <string name="live_chat_webview">Live Chat Webview</string>
     <string name="full_screen_portrait">Fullscreen portrait</string>
     <string name="allow_full_screen_portrait">Allow fullscreen portrait</string>
@@ -469,6 +487,8 @@
     <string name="various_tests_against_a_custom_source">Various tests against a custom source</string>
     <string name="writes_to_disk_till_no_space_is_left">Writes to disk till no space is left</string>
     <string name="visibility">Visibility</string>
+    <string name="check_for_updates_setting">Check for updates</string>
+    <string name="check_for_updates_setting_description">If a plugin should be checked for updates on startup</string>
     <string name="ratelimit">Rate-limit</string>
     <string name="ratelimit_description">Settings related to rate-limiting this plugin\'s behavior</string>
     <string name="ratelimit_sub_setting">Rate-limit Subscriptions</string>
@@ -730,6 +750,8 @@
     <string name="do_you_want_to_see_the_tutorials_you_can_find_them_at_any_time_through_the_more_button">Do you want to see the tutorials? You can find them at any time through the more button.</string>
     <string name="add_creator">Add Creators</string>
     <string name="select">Select</string>
+    <string name="zoom">Zoom</string>
+    <string name="check_to_see_if_an_update_is_available">Check to see if an update is available.</string>
     <string name="toggle_alternative_metadata">Toggle Alternative Title/Thumbnail</string>
     <string-array name="home_screen_array">
         <item>Recommendations</item>
