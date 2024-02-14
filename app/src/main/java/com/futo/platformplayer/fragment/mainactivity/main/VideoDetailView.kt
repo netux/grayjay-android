@@ -1108,14 +1108,7 @@ class VideoDetailView : ConstraintLayout {
         setDescription("".fixHtmlWhitespace());
         _player.setMetadata(video.name, video.author.name);
 
-        if (video.alternativeName != null || video.thumbnails.hasAlternative()) {
-            _buttonToggleAlternativeMetadata.visibility = VISIBLE;
-            _buttonToggleAlternativeMetadataMinimized.visibility = VISIBLE;
-            setAlternativeMetadataButtonState(_buttonToggleAlternativeMetadata, _isAlternativeMetadataShown);
-        } else {
-            _buttonToggleAlternativeMetadata.visibility = GONE;
-            _buttonToggleAlternativeMetadataMinimized.visibility = GONE;
-        }
+        updateToggleAlternativeMetadataButtonVisibility(video);
 
         _buttonSubscribe.setSubscribeChannel(video.author.url);
 
@@ -1291,14 +1284,7 @@ class VideoDetailView : ConstraintLayout {
         _minimize_title.text = getVideoTitle(video, _isAlternativeMetadataShown);
         _minimize_meta.text = video.author.name;
 
-        if (video.alternativeName != null || video.thumbnails.hasAlternative()) {
-            _buttonToggleAlternativeMetadata.visibility = VISIBLE;
-            _buttonToggleAlternativeMetadataMinimized.visibility = VISIBLE;
-            setAlternativeMetadataButtonState(_buttonToggleAlternativeMetadata, _isAlternativeMetadataShown);
-        } else {
-            _buttonToggleAlternativeMetadata.visibility = GONE;
-            _buttonToggleAlternativeMetadataMinimized.visibility = GONE;
-        }
+        updateToggleAlternativeMetadataButtonVisibility(video);
 
         _buttonSubscribe.setSubscribeChannel(video.author.url);
         setDescription(video.description.fixHtmlLinks());
@@ -2125,6 +2111,17 @@ class VideoDetailView : ConstraintLayout {
 
     private fun getVideoTitle(video: IPlatformVideo, alternative: Boolean): String {
         return if (alternative) (video.alternativeName ?: video.name) else video.name;
+    }
+
+    private fun updateToggleAlternativeMetadataButtonVisibility(video: IPlatformVideo) {
+        if (video.alternativeName != null || video.thumbnails.hasAlternative()) {
+            _buttonToggleAlternativeMetadata.visibility = VISIBLE;
+            _buttonToggleAlternativeMetadataMinimized.visibility = VISIBLE;
+            setAlternativeMetadataButtonState(_buttonToggleAlternativeMetadata, _isAlternativeMetadataShown);
+        } else {
+            _buttonToggleAlternativeMetadata.visibility = GONE;
+            _buttonToggleAlternativeMetadataMinimized.visibility = GONE;
+        }
     }
 
     private fun setAlternativeMetadataButtonState(button: ImageButton, active: Boolean) {
