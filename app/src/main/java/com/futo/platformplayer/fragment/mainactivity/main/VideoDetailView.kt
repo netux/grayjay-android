@@ -1105,7 +1105,7 @@ class VideoDetailView : ConstraintLayout {
             (_channelName.layoutParams as MarginLayoutParams).setMargins(0, (DP_2).toInt(), 0, 0);
         }
         setDescription("".fixHtmlWhitespace());
-        _player.setMetadata(video.name, video.author.name);
+        _player.setMetadata(getVideoName(video, _isAlternativeMetadataShown), video.author.name);
 
         updateToggleAlternativeMetadataButtonVisibility(video);
 
@@ -1251,7 +1251,7 @@ class VideoDetailView : ConstraintLayout {
         val ref = Models.referenceFromBuffer(video.url.toByteArray())
         val extraBytesRef = video.id.value?.let { if (it.isNotEmpty()) it.toByteArray() else null }
         _addCommentView.setContext(video.url, ref)
-        _player.setMetadata(video.name, video.author.name);
+        _player.setMetadata(getVideoName(video, _isAlternativeMetadataShown), video.author.name);
 
         if (video is TutorialFragment.TutorialVideo) {
             _toggleCommentType.setValue(false, false);
@@ -2102,8 +2102,10 @@ class VideoDetailView : ConstraintLayout {
     private fun toggleAlternativeMetadata(view: View) {
         _isAlternativeMetadataShown = !_isAlternativeMetadataShown;
 
-        _title.text = getVideoName(video as IPlatformVideo, _isAlternativeMetadataShown);
-        _minimize_title.text = getVideoName(video as IPlatformVideo, _isAlternativeMetadataShown);
+        val videoName = getVideoName(video as IPlatformVideo, _isAlternativeMetadataShown);
+        _title.text = videoName;
+        _minimize_title.text = videoName;
+        _player.setMetadata(videoName, (video as IPlatformVideo).author.name);
 
         setAlternativeMetadataButtonState(_buttonToggleAlternativeMetadata, _isAlternativeMetadataShown);
     }
