@@ -25,8 +25,6 @@ import com.futo.platformplayer.logging.Logger
 import com.futo.platformplayer.models.PlatformVideoWithTime
 import com.futo.platformplayer.models.UrlVideoWithTime
 import com.futo.platformplayer.states.StatePlayer
-import com.futo.platformplayer.states.StateSaved
-import com.futo.platformplayer.states.VideoToOpen
 import com.futo.platformplayer.views.containers.SingleViewTouchableMotionLayout
 
 class VideoDetailFragment : MainFragment {
@@ -171,14 +169,14 @@ class VideoDetailFragment : MainFragment {
             _view!!.transitionToStart();
     }
     fun maximizeVideoDetail(instant: Boolean = false) {
-        if(_maximizeProgress > 0.9f && state != State.MAXIMIZED) {
+        if((_maximizeProgress > 0.9f || instant) && state != State.MAXIMIZED) {
             state = State.MAXIMIZED;
             onMaximized.emit();
         }
         _view?.let {
-            if(!instant)
+            if(!instant) {
                 it.transitionToEnd();
-            else {
+            } else {
                 it.progress = 1f;
                 onTransitioning.emit(true);
             }
@@ -372,11 +370,6 @@ class VideoDetailFragment : MainFragment {
 
         Logger.v(TAG, "shouldStop: $shouldStop");
         if(shouldStop) {
-            _viewDetail?.let {
-                val v = it.video ?: return@let;
-                StateSaved.instance.setVideoToOpenBlocking(VideoToOpen(v.url, (it.lastPositionMilliseconds / 1000.0f).toLong()));
-            }
-
             _viewDetail?.onStop();
             StateCasting.instance.onStop();
             Logger.v(TAG, "called onStop() shouldStop: $shouldStop");
@@ -431,6 +424,7 @@ class VideoDetailFragment : MainFragment {
                 changeOrientation(OrientationManager.Orientation.PORTRAIT);
         }
         isFullscreen = fullscreen;
+        _view?.allowMotion = !fullscreen;
     }
     private fun changeOrientation(orientation: OrientationManager.Orientation) {
         Logger.i(TAG, "Orientation Change:" + orientation.name);

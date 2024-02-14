@@ -1,5 +1,6 @@
 package com.futo.platformplayer
 
+import android.util.Log
 import com.google.common.base.CharMatcher
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -9,7 +10,6 @@ import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.nio.ByteBuffer
-import java.nio.charset.Charset
 
 
 private const val IPV4_PART_COUNT = 4;
@@ -216,15 +216,20 @@ private fun ByteArray.toInetAddress(): InetAddress {
 }
 
 fun getConnectedSocket(addresses: List<InetAddress>, port: Int): Socket? {
+    val timeout = 2000
+
     if (addresses.isEmpty()) {
         return null;
     }
 
     if (addresses.size == 1) {
+        val socket = Socket()
+
         try {
-            return Socket(addresses[0], port);
+            return socket.apply { this.connect(InetSocketAddress(addresses[0], port), timeout) }
         } catch (e: Throwable) {
-            //Ignored.
+            Log.i("getConnectedSocket", "Failed to connect to: ${addresses[0]}", e)
+            socket.close()
         }
 
         return null;
@@ -249,7 +254,7 @@ fun getConnectedSocket(addresses: List<InetAddress>, port: Int): Socket? {
                     }
                 }
 
-                socket.connect(InetSocketAddress(address, port));
+                socket.connect(InetSocketAddress(address, port), timeout);
 
                 synchronized(syncObject) {
                     if (connectedSocket == null) {
@@ -263,7 +268,7 @@ fun getConnectedSocket(addresses: List<InetAddress>, port: Int): Socket? {
                     }
                 }
             } catch (e: Throwable) {
-                //Ignore
+                Log.i("getConnectedSocket", "Failed to connect to: $address", e)
             }
         };
 

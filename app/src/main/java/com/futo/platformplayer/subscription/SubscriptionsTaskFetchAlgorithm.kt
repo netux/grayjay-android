@@ -13,6 +13,7 @@ import com.futo.platformplayer.api.media.structures.MultiChronoContentPager
 import com.futo.platformplayer.engine.exceptions.PluginException
 import com.futo.platformplayer.engine.exceptions.ScriptCaptchaRequiredException
 import com.futo.platformplayer.engine.exceptions.ScriptCriticalException
+import com.futo.platformplayer.engine.exceptions.ScriptException
 import com.futo.platformplayer.exceptions.ChannelException
 import com.futo.platformplayer.findNonRuntimeException
 import com.futo.platformplayer.fragment.mainactivity.main.SubscriptionsFeedFragment
@@ -55,7 +56,7 @@ abstract class SubscriptionsTaskFetchAlgorithm(
                 val clientCacheCount = clientTasks.value.size - clientTaskCount;
                 val limit = clientTasks.key.getSubscriptionRateLimit();
                 if(clientCacheCount > 0 && clientTaskCount > 0 && limit != null && clientTaskCount >= limit && StateApp.instance.contextOrNull?.let { it is MainActivity && it.isFragmentActive<SubscriptionsFeedFragment>() } == true) {
-                    UIDialogs.toast("[${clientTasks.key.name}] only updating ${clientTaskCount} most urgent channels (rqs). (${clientCacheCount} cached)");
+                    UIDialogs.appToast("[${clientTasks.key.name}] only updating ${clientTaskCount} most urgent channels (rqs). (${clientCacheCount} cached)");
                 }
             }
 
@@ -68,7 +69,6 @@ abstract class SubscriptionsTaskFetchAlgorithm(
         val failedPlugins = mutableListOf<String>();
         val cachedChannels = mutableListOf<String>()
         val forkTasks = executeSubscriptionTasks(tasks, failedPlugins, cachedChannels);
-
 
         val taskResults = arrayListOf<SubscriptionTaskResult>();
         val timeTotal = measureTimeMillis {
@@ -126,7 +126,7 @@ abstract class SubscriptionsTaskFetchAlgorithm(
         val pager = MultiChronoContentPager(groupedPagers, allowFailure, 15);
         pager.initialize();
 
-        return Result(DedupContentPager(pager), exs);
+        return Result(DedupContentPager(pager, StatePlatform.instance.getEnabledClients().map { it.id }), exs);
     }
 
     fun executeSubscriptionTasks(tasks: List<SubscriptionTask>, failedPlugins: MutableList<String>, cachedChannels: MutableList<String>): List<ForkJoinTask<SubscriptionTaskResult>> {
@@ -200,7 +200,7 @@ abstract class SubscriptionsTaskFetchAlgorithm(
                     else {
                         Logger.i(StateSubscriptions.TAG, "Channel ${task.sub.channel.name} failed, substituting with cache");
                         pager = StateCache.instance.getChannelCachePager(task.sub.channel.url);
-                        taskEx = ex;
+                        taskEx = channelEx;
                         return@submit SubscriptionTaskResult(task, pager, taskEx);
                     }
                 }

@@ -1,7 +1,6 @@
 package com.futo.platformplayer.activities
 
 import android.annotation.SuppressLint
-import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
@@ -24,11 +23,13 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentContainerView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import com.futo.platformplayer.*
+import com.futo.platformplayer.api.http.ManagedHttpClient
 import com.futo.platformplayer.casting.StateCasting
 import com.futo.platformplayer.constructs.Event1
 import com.futo.platformplayer.fragment.mainactivity.bottombar.MenuBottomBarFragment
@@ -45,6 +46,7 @@ import com.futo.platformplayer.states.*
 import com.futo.platformplayer.stores.FragmentedStorage
 import com.futo.platformplayer.stores.SubscriptionStorage
 import com.futo.platformplayer.stores.v2.ManagedStore
+import com.futo.platformplayer.views.ToastView
 import com.google.gson.JsonParser
 import com.google.zxing.integration.android.IntentIntegrator
 import kotlinx.coroutines.*
@@ -54,6 +56,7 @@ import java.io.PrintWriter
 import java.io.StringWriter
 import java.lang.reflect.InvocationTargetException
 import java.util.*
+import java.util.concurrent.ConcurrentLinkedQueue
 
 class MainActivity : AppCompatActivity, IWithResultLauncher {
 
@@ -65,6 +68,7 @@ class MainActivity : AppCompatActivity, IWithResultLauncher {
     lateinit var rootView : MotionLayout;
 
     private lateinit var _overlayContainer: FrameLayout;
+    private lateinit var _toastView: ToastView;
 
     //Segment Containers
     private lateinit var _fragContainerTopBar: FragmentContainerView;
@@ -138,7 +142,9 @@ class MainActivity : AppCompatActivity, IWithResultLauncher {
             }
 
             try {
-                handleUrlAll(content)
+                runBlocking {
+                    handleUrlAll(content)
+                }
             } catch (e: Throwable) {
                 Logger.i(TAG, "Failed to handle URL.", e)
                 UIDialogs.toast(this, "Failed to handle URL: ${e.message}")
@@ -207,7 +213,7 @@ class MainActivity : AppCompatActivity, IWithResultLauncher {
         _fragContainerVideoDetail = findViewById(R.id.fragment_overlay);
         _fragContainerOverlay = findViewById(R.id.fragment_overlay_container);
         _overlayContainer = findViewById(R.id.overlay_container);
-        //_overlayContainer.visibility = View.GONE;
+        _toastView = findViewById(R.id.toast_view);
 
         //Initialize fragments
 
@@ -478,21 +484,6 @@ class MainActivity : AppCompatActivity, IWithResultLauncher {
         }
 
         _isVisible = true;
-        val videoToOpen = StateSaved.instance.videoToOpen;
-
-        if (_wasStopped) {
-            _wasStopped = false;
-
-            if (videoToOpen != null && _fragVideoDetail.state == VideoDetailFragment.State.CLOSED) {
-                Logger.i(TAG, "onResume videoToOpen=$videoToOpen");
-                if (StatePlatform.instance.hasEnabledVideoClient(videoToOpen.url)) {
-                    navigate(_fragVideoDetail, UrlVideoWithTime(videoToOpen.url, videoToOpen.timeSeconds, false));
-                    _fragVideoDetail.maximizeVideoDetail(true);
-                }
-
-                StateSaved.instance.setVideoToOpenNonBlocking(null);
-            }
-        }
     }
 
     override fun onPause() {
@@ -547,13 +538,28 @@ class MainActivity : AppCompatActivity, IWithResultLauncher {
                             navigate(_fragMainSources);
                         }
                     };
+                    "BROWSE_PLUGINS" -> {
+                        navigate(_fragBrowser, BrowserFragment.NavigateOptions("https://plugins.grayjay.app/phone.html", mapOf(
+                            Pair("grayjay") { req ->
+                                StateApp.instance.contextOrNull?.let {
+                                    if(it is MainActivity) {
+                                        runBlocking {
+                                            it.handleUrlAll(req.url.toString());
+                                        }
+                                    }
+                                };
+                            }
+                        )));
+                    }
                 }
             }
         }
 
         try {
             if (targetData != null) {
-                handleUrlAll(targetData)
+                runBlocking {
+                    handleUrlAll(targetData)
+                }
             }
         }
         catch(ex: Throwable) {
@@ -561,7 +567,7 @@ class MainActivity : AppCompatActivity, IWithResultLauncher {
         }
     }
 
-    fun handleUrlAll(url: String) {
+    suspend fun handleUrlAll(url: String) {
         val uri = Uri.parse(url)
         when (uri.scheme) {
             "grayjay" -> {
@@ -645,23 +651,38 @@ class MainActivity : AppCompatActivity, IWithResultLauncher {
         }
     }
 
-    fun handleUrl(url: String): Boolean {
+    suspend fun handleUrl(url: String): Boolean {
         Logger.i(TAG, "handleUrl(url=$url)")
 
-        if (StatePlatform.instance.hasEnabledVideoClient(url)) {
-            navigate(_fragVideoDetail, url);
-            _fragVideoDetail.maximizeVideoDetail(true);
-            return true;
-        } else if(StatePlatform.instance.hasEnabledChannelClient(url)) {
-            navigate(_fragMainChannel, url);
+        return withContext(Dispatchers.IO) {
+            Logger.i(TAG, "handleUrl(url=$url) on IO");
+            if (StatePlatform.instance.hasEnabledVideoClient(url)) {
+                Logger.i(TAG, "handleUrl(url=$url) found video client");
+                lifecycleScope.launch(Dispatchers.Main) {
+                    navigate(_fragVideoDetail, url);
 
-            lifecycleScope.launch {
-                delay(100);
-                _fragVideoDetail.minimizeVideoDetail();
-            };
-            return true;
+                    _fragVideoDetail.maximizeVideoDetail(true);
+                }
+                return@withContext true;
+            } else if (StatePlatform.instance.hasEnabledChannelClient(url)) {
+                Logger.i(TAG, "handleUrl(url=$url) found channel client");
+                lifecycleScope.launch(Dispatchers.Main) {
+                    navigate(_fragMainChannel, url);
+                    delay(100);
+                    _fragVideoDetail.minimizeVideoDetail();
+                };
+                return@withContext true;
+            } else if (StatePlatform.instance.hasEnabledPlaylistClient(url)) {
+                Logger.i(TAG, "handleUrl(url=$url) found playlist client");
+                lifecycleScope.launch(Dispatchers.Main) {
+                    navigate(_fragMainPlaylist, url);
+                    delay(100);
+                    _fragVideoDetail.minimizeVideoDetail();
+                };
+                return@withContext true;
+            }
+            return@withContext false;
         }
-        return false;
     }
     fun handleContent(file: String, mime: String? = null): Boolean {
         Logger.i(TAG, "handleContent(url=$file)");
@@ -814,10 +835,8 @@ class MainActivity : AppCompatActivity, IWithResultLauncher {
         if(_fragBotBarMenu.onBackPressed())
             return;
 
-        if(_fragVideoDetail.state == VideoDetailFragment.State.MAXIMIZED &&
-            _fragVideoDetail.onBackPressed())
+        if(_fragVideoDetail.state == VideoDetailFragment.State.MAXIMIZED && _fragVideoDetail.onBackPressed())
             return;
-
 
         if(!fragCurrent.onBackPressed())
             closeSegment();
@@ -864,7 +883,6 @@ class MainActivity : AppCompatActivity, IWithResultLauncher {
         _orientationManager.disable();
 
         StateApp.instance.mainAppDestroyed(this);
-        StateSaved.instance.setVideoToOpenBlocking(null);
     }
 
     inline fun <reified T> isFragmentActive(): Boolean {
@@ -1052,6 +1070,43 @@ class MainActivity : AppCompatActivity, IWithResultLauncher {
         }
     }
 
+    private val _toastQueue = ConcurrentLinkedQueue<ToastView.Toast>();
+    private var _toastJob: Job? = null;
+    fun showAppToast(toast: ToastView.Toast) {
+        synchronized(_toastQueue) {
+            _toastQueue.add(toast);
+            if(_toastJob?.isActive != true)
+                _toastJob = lifecycleScope.launch(Dispatchers.Default) {
+                    launchAppToastJob();
+                };
+        }
+    }
+    private suspend fun launchAppToastJob() {
+        Logger.i(TAG, "Starting appToast loop");
+        while(!_toastQueue.isEmpty()) {
+            val toast = _toastQueue.poll() ?: continue;
+            Logger.i(TAG, "Showing next toast (${toast.msg})");
+
+            lifecycleScope.launch(Dispatchers.Main) {
+                if (!_toastView.isVisible) {
+                    Logger.i(TAG, "First showing toast");
+                    _toastView.setToast(toast);
+                    _toastView.show(true);
+                } else {
+                    _toastView.setToastAnimated(toast);
+                }
+            }
+            if(toast.long)
+                delay(5000);
+            else
+                delay(3000);
+        }
+        Logger.i(TAG, "Ending appToast loop");
+        lifecycleScope.launch(Dispatchers.Main) {
+            _toastView.hide(true) {
+            };
+        }
+    }
 
 
     //TODO: Only calls last handler due to missing request codes on ActivityResultLaunchers.

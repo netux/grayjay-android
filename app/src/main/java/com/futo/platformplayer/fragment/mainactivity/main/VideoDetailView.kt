@@ -14,6 +14,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.Icon
 import android.net.Uri
+import android.provider.Browser
 import android.support.v4.media.session.PlaybackStateCompat
 import android.text.Spanned
 import android.util.AttributeSet
@@ -147,10 +148,11 @@ import com.futo.polycentric.core.Opinion
 import com.futo.polycentric.core.toURLInfoSystemLinkUrl
 import com.google.protobuf.ByteString
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import userpackage.Protocol
 import java.time.OffsetDateTime
@@ -384,7 +386,7 @@ class VideoDetailView : ConstraintLayout {
         _buttonToggleAlternativeMetadataMinimized.setOnClickListener(:: toggleAlternativeMetadata);
 
         _buttonSubscribe.onSubscribed.subscribe {
-            UISlideOverlays.showSubscriptionOptionsOverlay(it, _overlayContainer);
+            _slideUpOverlay = UISlideOverlays.showSubscriptionOptionsOverlay(it, _overlayContainer);
         };
 
         _container_content_liveChat.onRaidNow.subscribe {
@@ -409,6 +411,10 @@ class VideoDetailView : ConstraintLayout {
                 }
             }
         };
+        _monetization.onUrlTap.subscribe {
+            fragment.navigate<BrowserFragment>(it);
+            onMinimize.emit();
+        }
 
         _player.attachPlayer();
 
@@ -772,7 +778,9 @@ class VideoDetailView : ConstraintLayout {
     fun updateMoreButtons() {
         val buttons = listOf(RoundButton(context, R.drawable.ic_add, context.getString(R.string.add), TAG_ADD) {
             (video ?: _searchVideo)?.let {
-                _slideUpOverlay = UISlideOverlays.showAddToOverlay(it, _overlayContainer);
+                _slideUpOverlay = UISlideOverlays.showAddToOverlay(it, _overlayContainer) {
+                    _slideUpOverlay = it
+                };
             }
         },
             if(video?.isLive ?: false)
@@ -865,14 +873,19 @@ class VideoDetailView : ConstraintLayout {
             }
         }
     }
-    suspend fun getHistoryIndex(video: IPlatformVideo): DBHistory.Index = withContext(Dispatchers.IO){
-        val current = _historyIndex;
-        if(current == null || current.url != video.url) {
-            val index = StateHistory.instance.getHistoryByVideo(video, true)!!;
-            _historyIndex = index;
-            return@withContext index;
+
+
+    private val _historyIndexLock = Mutex(false);
+    suspend fun getHistoryIndex(video: IPlatformVideo): DBHistory.Index? = withContext(Dispatchers.IO){
+        _historyIndexLock.withLock {
+            val current = _historyIndex;
+            if(current == null || current.url != video.url) {
+                val index = StateHistory.instance.getHistoryByVideo(video, true);
+                _historyIndex = index;
+                return@withContext index;
+            }
+            return@withContext current;
         }
-        return@withContext current;
     }
 
 
@@ -1009,6 +1022,9 @@ class VideoDetailView : ConstraintLayout {
     fun setVideo(url: String, resumeSeconds: Long = 0, playWhenReady: Boolean = true) {
         Logger.i(TAG, "setVideo url=$url resumeSeconds=$resumeSeconds playWhenReady=$playWhenReady")
 
+        if(this.video?.url == url)
+            return;
+
         _searchVideo = null;
         video = null;
         _playbackTracker = null;
@@ -1036,8 +1052,11 @@ class VideoDetailView : ConstraintLayout {
 
         switchContentView(_container_content_main);
     }
-    fun setVideoOverview(video: IPlatformVideo, fetch: Boolean = true, resumeSeconds: Long = 0) {
+    fun setVideoOverview(video: IPlatformVideo, fetch: Boolean = true, resumeSeconds: Long = 0, bypassSameVideoCheck: Boolean = false) {
         Logger.i(TAG, "setVideoOverview")
+
+        if(!bypassSameVideoCheck && this.video?.url == video.url)
+            return;
 
         val cachedVideo = StateDownloads.instance.getCachedVideo(video.id);
         if(cachedVideo != null) {
@@ -1142,9 +1161,12 @@ class VideoDetailView : ConstraintLayout {
 
         switchContentView(_container_content_main);
     }
-    @OptIn(ExperimentalCoroutinesApi::class)
+    //@OptIn(ExperimentalCoroutinesApi::class)
     fun setVideoDetails(videoDetail: IPlatformVideoDetails, newVideo: Boolean = false) {
         Logger.i(TAG, "setVideoDetails (${videoDetail.name})")
+
+        if(newVideo && this.video?.url == videoDetail.url)
+            return;
 
         if (newVideo) {
             _lastVideoSource = null;
@@ -1235,11 +1257,11 @@ class VideoDetailView : ConstraintLayout {
         }
 
         val ref = Models.referenceFromBuffer(video.url.toByteArray())
-        val extraBytesRef = video.id.value?.toByteArray()
+        val extraBytesRef = video.id.value?.let { if (it.isNotEmpty()) it.toByteArray() else null }
         _addCommentView.setContext(video.url, ref)
         _player.setMetadata(video.name, video.author.name);
 
-        if (video !is TutorialFragment.TutorialVideo) {
+        if (video is TutorialFragment.TutorialVideo) {
             _toggleCommentType.setValue(false, false);
         } else {
             _toggleCommentType.setValue(!Settings.instance.other.polycentricEnabled || Settings.instance.comments.defaultCommentSection == 1, false);
@@ -1394,13 +1416,15 @@ class VideoDetailView : ConstraintLayout {
         val toResume = _videoResumePositionMilliseconds;
         _videoResumePositionMilliseconds = 0;
         loadCurrentVideo(toResume);
-        _player.setGestureSoundFactor(1.0f);
+        if (!Settings.instance.gestureControls.useSystemVolume) {
+            _player.setGestureSoundFactor(1.0f);
+        }
 
         updateQueueState();
 
         if (video !is TutorialFragment.TutorialVideo) {
             fragment.lifecycleScope.launch(Dispatchers.IO) {
-                val historyItem = getHistoryIndex(videoDetail);
+                val historyItem = getHistoryIndex(videoDetail) ?: return@launch;
 
                 withContext(Dispatchers.Main) {
                     _historicalPosition = StateHistory.instance.updateHistoryPosition(video,  historyItem,false, (toResume.toFloat() / 1000.0f).toLong());
@@ -1513,12 +1537,12 @@ class VideoDetailView : ConstraintLayout {
     private fun loadCurrentVideo(resumePositionMs: Long = 0) {
         _didStop = false;
 
-        val video = video ?: return;
+        val video = (videoLocal ?: video) ?: return;
 
         try {
             val videoSource = _lastVideoSource ?: _player.getPreferredVideoSource(video, Settings.instance.playback.getCurrentPreferredQualityPixelCount());
             val audioSource = _lastAudioSource ?: _player.getPreferredAudioSource(video, Settings.instance.playback.getPrimaryLanguage(context));
-            val subtitleSource = _lastSubtitleSource;
+            val subtitleSource = _lastSubtitleSource ?: (if(video is VideoLocal) video.subtitlesSources.firstOrNull() else null);
             Logger.i(TAG, "loadCurrentVideo(videoSource=$videoSource, audioSource=$audioSource, subtitleSource=$subtitleSource, resumePositionMs=$resumePositionMs)")
 
             if(videoSource == null && audioSource == null) {
@@ -1546,6 +1570,8 @@ class VideoDetailView : ConstraintLayout {
                     _player.setArtwork(null);
 
                 _player.setSource(videoSource, audioSource, _playWhenReady, false);
+                if(subtitleSource != null)
+                    _player.swapSubtitles(fragment.lifecycleScope, subtitleSource);
                 _player.seekTo(resumePositionMs);
             }
             else
@@ -1553,6 +1579,7 @@ class VideoDetailView : ConstraintLayout {
 
             _lastVideoSource = videoSource;
             _lastAudioSource = audioSource;
+            _lastSubtitleSource = subtitleSource;
         }
         catch(ex: UnsupportedCastException) {
             Logger.e(TAG, "Failed to load cast media", ex);
@@ -1670,7 +1697,7 @@ class VideoDetailView : ConstraintLayout {
         Logger.i(TAG, "prevVideo")
         val next = StatePlayer.instance.prevQueueItem(withoutRemoval || _player.duration < 100 || (_player.position.toFloat() / _player.duration) < 0.9);
         if(next != null) {
-            setVideoOverview(next);
+            setVideoOverview(next, true, 0, true);
         }
     }
 
@@ -1680,7 +1707,7 @@ class VideoDetailView : ConstraintLayout {
         if(next == null && forceLoop)
             next = StatePlayer.instance.restartQueue();
         if(next != null) {
-            setVideoOverview(next);
+            setVideoOverview(next, true, 0, true);
             return true;
         }
         else
@@ -1987,14 +2014,14 @@ class VideoDetailView : ConstraintLayout {
         Logger.i(TAG, "fetchPolycentricComments")
         val video = video;
         val idValue = video?.id?.value
-        if (idValue == null) {
-            Logger.w(TAG, "Failed to fetch polycentric comments because id was null")
+        if (video?.url?.isEmpty() != false) {
+            Logger.w(TAG, "Failed to fetch polycentric comments because url was null")
             _commentsList.clear()
             return
         }
 
         val ref = Models.referenceFromBuffer(video.url.toByteArray())
-        val extraBytesRef = video.id.value?.toByteArray()
+        val extraBytesRef = idValue?.let { if (it.isNotEmpty()) it.toByteArray() else null }
         _commentsList.load(false) { StatePolycentric.instance.getCommentPager(video.url, ref, listOfNotNull(extraBytesRef)); };
     }
     private fun fetchVideo() {
@@ -2281,7 +2308,7 @@ class VideoDetailView : ConstraintLayout {
         if (updateHistory && (_lastPositionSaveTime == -1L || currentTime - _lastPositionSaveTime > 5000)) {
             if (v !is TutorialFragment.TutorialVideo) {
                 fragment.lifecycleScope.launch(Dispatchers.IO) {
-                    val history = getHistoryIndex(v);
+                    val history = getHistoryIndex(v) ?: return@launch;
                     StateHistory.instance.updateHistoryPosition(v, history, true, (positionMilliseconds.toFloat() / 1000.0f).toLong());
                 }
             }
@@ -2390,7 +2417,7 @@ class VideoDetailView : ConstraintLayout {
         }
         else if(isOverlayed) {
             _playerProgress.layoutParams = _playerProgress.layoutParams.apply {
-                (this as MarginLayoutParams).bottomMargin = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, -6f, resources.displayMetrics).toInt();
+                (this as MarginLayoutParams).bottomMargin = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, -2f, resources.displayMetrics).toInt();
             };
             _playerProgress.elevation = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 5f, resources.displayMetrics);
         }
@@ -2591,7 +2618,7 @@ class VideoDetailView : ConstraintLayout {
                 }
                 else
                     withContext(Dispatchers.Main) {
-                        setVideoDetails(videoDetail);
+                        setVideoDetails(videoDetail, false);
                         _liveTryJob = null;
                     }
             }

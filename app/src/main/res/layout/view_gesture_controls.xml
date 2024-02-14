@@ -152,4 +152,47 @@
             android:textSize="16dp"/>
     </FrameLayout>
 
+    <FrameLayout
+        android:id="@+id/layout_controls_zoom"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:background="@drawable/background_gesture_controls"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/text_zoom"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/inter_regular"
+            tools:text="@string/zoom"
+            android:textColor="@color/white"
+            android:textSize="16dp"/>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/layout_indicator_fill"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/background_primary_border"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:id="@+id/layout_indicator_fit"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:background="@drawable/background_primary_border"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:visibility="gone"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

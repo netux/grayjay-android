@@ -46,6 +46,7 @@ import com.futo.platformplayer.models.ImageVariable
 import com.futo.platformplayer.stores.FragmentedStorage
 import com.futo.platformplayer.stores.StringArrayStorage
 import com.futo.platformplayer.stores.StringStorage
+import com.futo.platformplayer.views.ToastView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -92,11 +93,6 @@ class StatePlatform {
     private val _channelClientPool = PlatformMultiClientPool("Channels", 15); //Used primarily for subscription/background channel fetches
     private val _trackerClientPool = PlatformMultiClientPool("Trackers", 1); //Used exclusively for playback trackers
     private val _liveEventClientPool = PlatformMultiClientPool("LiveEvents", 1); //Used exclusively for live events
-
-
-    private val _primaryClientPersistent = FragmentedStorage.get<StringStorage>("primaryClient");
-    private var _primaryClientObj : IPlatformClient? = null;
-    val primaryClient : IPlatformClient get() = _primaryClientObj ?: throw IllegalStateException("PlatformState not yet initialized");
 
 
     private val _icons : HashMap<String, ImageVariable> = HashMap();
@@ -171,8 +167,13 @@ class StatePlatform {
             var enabled: Array<String>;
             synchronized(_clientsLock) {
                 for(e in _enabledClients) {
-                    e.disable();
-                    onSourceDisabled.emit(e);
+                    try {
+                        e.disable();
+                        onSourceDisabled.emit(e);
+                    }
+                    catch(ex: Throwable) {
+                        UIDialogs.appToast(ToastView.Toast("If this happens often, please inform the developers on Github", false, null, "Plugin [${e.name}] failed to disable"));
+                    }
                 }
 
                 _enabledClients.clear();
@@ -206,20 +207,6 @@ class StatePlatform {
                     enabled = StatePlugins.instance.getEmbeddedSourcesDefault(context)
                         .filter { id -> _availableClients.any { it.id == id } }
                         .toTypedArray();
-                }
-
-
-                val primary = _primaryClientPersistent.value;
-                if(primary.isEmpty() || primary == StateDeveloper.DEV_ID) {
-                    selectPrimaryClient(enabled.firstOrNull() ?: _availableClients.first().id);
-                } else if(!_availableClients.any { it.id == primary }) {
-                    selectPrimaryClient(_availableClients.firstOrNull()?.id!!);
-                } else {
-                    selectPrimaryClient(primary);
-                }
-
-                if(!enabled.any { it == primaryClient.id }) {
-                    enabled = enabled.concat(primaryClient.id);
                 }
             }
             selectClients(*enabled);
@@ -323,8 +310,6 @@ class StatePlatform {
                     newClient.initialize();
                     _enabledClients.add(newClient);
                 }
-                if (_primaryClientObj == client)
-                    _primaryClientObj = newClient;
 
                 _availableClients.removeIf { it.id == id };
                 _availableClients.add(newClient);
@@ -333,6 +318,11 @@ class StatePlatform {
         };
     }
 
+
+    suspend fun enableClient(ids: List<String>) {
+        val currentClients = getEnabledClients().map { it.id };
+        selectClients(*(currentClients + ids).distinct().toTypedArray());
+    }
     /**
      * Selects the enabled clients, meaning all clients that data is actively requested from.
      * If a client is disabled, NO requests are made to said client
@@ -363,17 +353,6 @@ class StatePlatform {
                 }
             }
         };
-    }
-
-    /**
-     * Selects the primary client, meaning the first target for requests.
-     * At the moment, since multi-client requests are not yet implemented, this is the goto client.
-     */
-    fun selectPrimaryClient(id: String) {
-        synchronized(_clientsLock) {
-            _primaryClientObj = getClient(id);
-            _primaryClientPersistent.setAndSave(id);
-        }
     }
 
     fun getHome(): IPager<IPlatformContent> {
@@ -448,14 +427,12 @@ class StatePlatform {
             toAwait.map { PlaceholderPager(5, { PlatformContentPlaceholder(it.first.id) }) });
     }
 
-    fun getHomePrimary(): IPager<IPlatformContent> {
-        return primaryClient.getHome();
-    }
 
     //Search
     fun searchSuggestions(query: String): Array<String> {
         Logger.i(TAG, "Platform - searchSuggestions");
-        return primaryClient.searchSuggestions(query);
+        //TODO: hasSearchSuggestions
+        return getEnabledClients().firstOrNull()?.searchSuggestions(query) ?: arrayOf();
     }
 
     fun search(query: String, type: String? = null, sort: String? = null, filters: Map<String, List<String>> = mapOf(), clientIds: List<String>? = null): IPager<IPlatformContent> {
@@ -841,6 +818,7 @@ class StatePlatform {
         return urls;
     }
 
+    fun hasEnabledPlaylistClient(url: String) : Boolean = getEnabledClients().any { it.isPlaylistUrl(url) };
     fun getPlaylistClientOrNull(url: String): IPlatformClient? = getEnabledClients().find { it.isPlaylistUrl(url) }
     fun getPlaylistClient(url: String): IPlatformClient = getEnabledClients().find { it.isPlaylistUrl(url) }
         ?: throw NoPlatformClientException("No client enabled that supports this playlist url (${url})");
@@ -886,7 +864,6 @@ class StatePlatform {
         synchronized(_clientsLock) {
             val enabledExisting = _enabledClients.filter { it is DevJSClient };
             val isEnabled = !enabledExisting.isEmpty()
-            val isPrimary = _primaryClientObj is DevJSClient;
 
             for (enabled in enabledExisting) {
                 enabled.disable();
@@ -901,11 +878,7 @@ class StatePlatform {
             devId = newClient.devID;
             try {
                 StateDeveloper.instance.initializeDev(devId!!);
-                if (isPrimary) {
-                    _primaryClientObj = newClient;
-                    _enabledClients.add(0, newClient);
-                    newClient.initialize();
-                } else if (isEnabled) {
+                if (isEnabled) {
                     _enabledClients.add(newClient);
                     newClient.initialize();
                 }
@@ -941,22 +914,22 @@ class StatePlatform {
         }
     }
 
-    suspend fun checkForUpdates(): Int = withContext(Dispatchers.IO) {
-        var updateAvailableCount = 0
+    suspend fun checkForUpdates(): List<SourcePluginConfig> = withContext(Dispatchers.IO) {
+        var configs = mutableListOf<SourcePluginConfig>()
         val updatesAvailableFor = hashSetOf<String>()
-        for (availableClient in getAvailableClients()) {
+        for (availableClient in getAvailableClients().filter { it is JSClient && it.descriptor.appSettings.checkForUpdates }) {
             if (availableClient !is JSClient) {
                 continue
             }
 
             if (checkForUpdates(availableClient.config)) {
-                updateAvailableCount++
+                configs.add(availableClient.config);
                 updatesAvailableFor.add(availableClient.config.id)
             }
         }
 
         _updatesAvailableMap = updatesAvailableFor
-        return@withContext updateAvailableCount
+        return@withContext configs;
     }
 
     fun clearUpdateAvailable(c: SourcePluginConfig) {

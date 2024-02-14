@@ -143,7 +143,7 @@ class MediaPlaybackService : Service() {
     override fun onDestroy() {
         Logger.v(TAG, "onDestroy");
         _instance = null;
-        MediaControlReceiver.onCloseReceived.emit();
+        MediaControlReceiver.onPauseReceived.emit();
         super.onDestroy();
     }
 
@@ -153,7 +153,7 @@ class MediaPlaybackService : Service() {
 
     fun closeMediaSession() {
         Logger.v(TAG, "closeMediaSession");
-        stopForeground(STOP_FOREGROUND_DETACH);
+        stopForeground(STOP_FOREGROUND_REMOVE);
 
         val focusRequest = _focusRequest;
         if (focusRequest != null) {
@@ -162,7 +162,9 @@ class MediaPlaybackService : Service() {
         }
         _hasFocus = false;
 
-        _notificationManager?.cancel(MEDIA_NOTIF_ID);
+        val notifManager = _notificationManager;
+        Logger.i(TAG, "Cancelling playback notification (notifManager: ${notifManager != null})");
+        notifManager?.cancel(MEDIA_NOTIF_ID);
         _notif_last_video = null;
         _notif_last_bitmap = null;
         _mediaSession = null;

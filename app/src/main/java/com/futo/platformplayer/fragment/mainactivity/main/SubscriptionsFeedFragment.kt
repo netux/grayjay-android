@@ -10,6 +10,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.futo.platformplayer.*
 import com.futo.platformplayer.activities.MainActivity
+import com.futo.platformplayer.api.media.IPlatformClient
 import com.futo.platformplayer.api.media.models.contents.ContentType
 import com.futo.platformplayer.api.media.models.contents.IPlatformContent
 import com.futo.platformplayer.api.media.models.video.IPlatformVideo
@@ -30,6 +31,7 @@ import com.futo.platformplayer.stores.FragmentedStorage
 import com.futo.platformplayer.stores.FragmentedStorageFileJson
 import com.futo.platformplayer.views.FeedStyle
 import com.futo.platformplayer.views.NoResultsView
+import com.futo.platformplayer.views.ToastView
 import com.futo.platformplayer.views.adapters.ContentPreviewViewHolder
 import com.futo.platformplayer.views.adapters.InsertedViewAdapterWithLoader
 import com.futo.platformplayer.views.adapters.InsertedViewHolder
@@ -43,6 +45,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.nio.channels.Channel
 import java.time.OffsetDateTime
 import kotlin.system.measureTimeMillis
 
@@ -108,16 +111,6 @@ class SubscriptionsFeedFragment : MainFragment() {
 
         constructor(fragment: SubscriptionsFeedFragment, inflater: LayoutInflater, cachedRecyclerData: RecyclerData<InsertedViewAdapterWithLoader<ContentPreviewViewHolder>, LinearLayoutManager, IPager<IPlatformContent>, IPlatformContent, IPlatformContent, InsertedViewHolder<ContentPreviewViewHolder>>? = null) : super(fragment, inflater, cachedRecyclerData) {
             Logger.i(TAG, "SubscriptionsFeedFragment constructor()");
-            StateSubscriptions.instance.onFeedProgress.subscribe(this) { id, progress, total ->
-                if(subGroup?.id == id)
-                    fragment.lifecycleScope.launch(Dispatchers.Main) {
-                        try {
-                            setProgress(progress, total);
-                        } catch (e: Throwable) {
-                            Logger.e(TAG, "Failed to set progress", e);
-                        }
-                    }
-            }
             StateSubscriptions.instance.global.onUpdateProgress.subscribe(this) { progress, total ->
             };
 
@@ -173,12 +166,24 @@ class SubscriptionsFeedFragment : MainFragment() {
             if (!StateSubscriptions.instance.global.isGlobalUpdating) {
                 finishRefreshLayoutLoader();
             }
+
+            StateSubscriptions.instance.onFeedProgress.subscribe(this) { id, progress, total ->
+                if(subGroup?.id == id)
+                    fragment.lifecycleScope.launch(Dispatchers.Main) {
+                        try {
+                            setProgress(progress, total);
+                        } catch (e: Throwable) {
+                            Logger.e(TAG, "Failed to set progress", e);
+                        }
+                    }
+            }
         }
 
         override fun cleanup() {
             super.cleanup()
             StateSubscriptions.instance.global.onUpdateProgress.remove(this);
             StateSubscriptions.instance.onSubscriptionsChanged.remove(this);
+            StateSubscriptions.instance.onFeedProgress.remove(this);
         }
 
         override val feedStyle: FeedStyle get() = Settings.instance.subscriptions.getSubscriptionsFeedStyle();
@@ -427,7 +432,7 @@ class SubscriptionsFeedFragment : MainFragment() {
             context?.let {
                 fragment.lifecycleScope.launch(Dispatchers.Main) {
                     try {
-                        if (exs.size <= 8) {
+                        if (exs.size <= 3) {
                             for (ex in exs) {
                                 var toShow = ex;
                                 var channel: String? = null;
@@ -437,15 +442,17 @@ class SubscriptionsFeedFragment : MainFragment() {
                                 }
                                 Logger.e(TAG, "Channel [${channel}] failed", ex);
                                 if (toShow is PluginException)
-                                    UIDialogs.toast(
-                                        it,
-                                        context.getString(R.string.plugin_pluginname_failed_message).replace("{pluginName}", toShow.config.name).replace("{message}", toShow.message ?: "")
+                                    UIDialogs.appToast(ToastView.Toast(
+                                                toShow.message +
+                                                (if(channel != null) "\nChannel: " + channel else ""), false, null,
+                                        "Plugin ${toShow.config.name} failed")
                                     );
                                 else
-                                    UIDialogs.toast(it, ex.message ?: "");
+                                    UIDialogs.appToast(ex.message ?: "");
                             }
                         }
                         else {
+                            val failedChannels = exs.filterIsInstance<ChannelException>().map { it.channelNameOrUrl }.distinct().toList();
                             val failedPlugins = exs.filter { it is PluginException || (it is ChannelException && it.cause is PluginException) }
                                 .map { if(it is ChannelException) (it.cause as PluginException) else if(it is PluginException) it else null  }
                                 .filter { it != null }
@@ -453,7 +460,10 @@ class SubscriptionsFeedFragment : MainFragment() {
                                 .map { it!! }
                                 .toList();
                             for(distinctPluginFail in failedPlugins)
-                                UIDialogs.toast(it, context.getString(R.string.plugin_pluginname_failed_message).replace("{pluginName}", distinctPluginFail.config.name).replace("{message}", distinctPluginFail.message ?: ""));
+                                UIDialogs.appToast(context.getString(R.string.plugin_pluginname_failed_message).replace("{pluginName}", distinctPluginFail.config.name).replace("{message}", distinctPluginFail.message ?: ""));
+                            if(failedChannels.isNotEmpty())
+                                UIDialogs.appToast(ToastView.Toast(failedChannels.take(3).map { "- ${it}" }.joinToString("\n") +
+                                        (if(failedChannels.size >= 3) "\nAnd ${failedChannels.size - 3} more" else ""), false, null, "Failed Channels"));
                         }
                     } catch (e: Throwable) {
                         Logger.e(TAG, "Failed to handle exceptions", e)
