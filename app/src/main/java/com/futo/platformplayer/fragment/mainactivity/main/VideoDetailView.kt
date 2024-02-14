@@ -1110,7 +1110,7 @@ class VideoDetailView : ConstraintLayout {
         if (video.alternativeName != null || video.thumbnails.hasAlternative()) {
             _buttonToggleAlternativeMetadata.visibility = VISIBLE;
             _buttonToggleAlternativeMetadataMinimized.visibility = VISIBLE;
-            setAlternativeMetadataButtonState(_buttonToggleAlternativeMetadata, _isAlternativeMetadataShown)
+            setAlternativeMetadataButtonState(_buttonToggleAlternativeMetadata, _isAlternativeMetadataShown);
         } else {
             _buttonToggleAlternativeMetadata.visibility = GONE;
             _buttonToggleAlternativeMetadataMinimized.visibility = GONE;
@@ -1292,9 +1292,11 @@ class VideoDetailView : ConstraintLayout {
 
         if (video.alternativeName != null || video.thumbnails.hasAlternative()) {
             _buttonToggleAlternativeMetadata.visibility = VISIBLE;
-            setAlternativeMetadataButtonState(_buttonToggleAlternativeMetadata, _isAlternativeMetadataShown)
+            _buttonToggleAlternativeMetadataMinimized.visibility = VISIBLE;
+            setAlternativeMetadataButtonState(_buttonToggleAlternativeMetadata, _isAlternativeMetadataShown);
         } else {
             _buttonToggleAlternativeMetadata.visibility = GONE;
+            _buttonToggleAlternativeMetadataMinimized.visibility = GONE;
         }
 
         _buttonSubscribe.setSubscribeChannel(video.author.url);
