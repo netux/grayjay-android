@@ -1072,12 +1072,12 @@ class VideoDetailView : ConstraintLayout {
 
         _toggleCommentType.setValue(false, false);
 
-        _title.text = getVideoTitle(video, _isAlternativeMetadataShown);
+        _title.text = getVideoName(video, _isAlternativeMetadataShown);
         _rating.visibility = View.GONE;
         _layoutRating.visibility = View.GONE;
         _textComments.visibility = View.VISIBLE;
 
-        _minimize_title.text = getVideoTitle(video, _isAlternativeMetadataShown);
+        _minimize_title.text = getVideoName(video, _isAlternativeMetadataShown);
         _minimize_meta.text = video.author.name;
 
         val subTitleSegments : ArrayList<String> = ArrayList();
@@ -1262,7 +1262,7 @@ class VideoDetailView : ConstraintLayout {
         updateCommentType(true);
 
         //UI
-        _title.text = getVideoTitle(video, _isAlternativeMetadataShown);
+        _title.text = getVideoName(video, _isAlternativeMetadataShown);
         _channelName.text = video.author.name;
         if(video.author.subscribers != null) {
             _channelMeta.text = if((video.author.subscribers ?: 0) > 0) video.author.subscribers!!.toHumanNumber() + " " + context.getString(R.string.subscribers) else "";
@@ -1280,7 +1280,7 @@ class VideoDetailView : ConstraintLayout {
                 _monetization.setPlatformMembership(null, null);
         }
 
-        _minimize_title.text = getVideoTitle(video, _isAlternativeMetadataShown);
+        _minimize_title.text = getVideoName(video, _isAlternativeMetadataShown);
         _minimize_meta.text = video.author.name;
 
         updateToggleAlternativeMetadataButtonVisibility(video);
@@ -2102,13 +2102,13 @@ class VideoDetailView : ConstraintLayout {
     private fun toggleAlternativeMetadata(view: View) {
         _isAlternativeMetadataShown = !_isAlternativeMetadataShown;
 
-        _title.text = getVideoTitle(video as IPlatformVideo, _isAlternativeMetadataShown);
-        _minimize_title.text = getVideoTitle(video as IPlatformVideo, _isAlternativeMetadataShown);
+        _title.text = getVideoName(video as IPlatformVideo, _isAlternativeMetadataShown);
+        _minimize_title.text = getVideoName(video as IPlatformVideo, _isAlternativeMetadataShown);
 
         setAlternativeMetadataButtonState(_buttonToggleAlternativeMetadata, _isAlternativeMetadataShown);
     }
 
-    private fun getVideoTitle(video: IPlatformVideo, alternative: Boolean): String {
+    private fun getVideoName(video: IPlatformVideo, alternative: Boolean): String {
         return if (alternative) (video.alternativeName ?: video.name) else video.name;
     }
 
