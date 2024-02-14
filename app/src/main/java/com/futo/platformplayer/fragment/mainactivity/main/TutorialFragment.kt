@@ -118,7 +118,6 @@ class TutorialFragment : MainFragment() {
     class TutorialVideo(
         uuid: String,
         override val name: String,
-        override val alternativeName: String?,
         override val description: String,
         thumbnailUrl: String,
         videoUrl: String,
@@ -138,6 +137,7 @@ class TutorialFragment : MainFragment() {
         override val datetime: OffsetDateTime? = OffsetDateTime.parse("2023-12-18T00:00:00Z")
         override val thumbnails: Thumbnails = Thumbnails(arrayOf(Thumbnail(thumbnailUrl)))
         override val author: PlatformAuthorLink = PlatformAuthorLink(PlatformID("tutorial", "f422ced6-b551-4b62-818e-27a4f5f4918a"), "Grayjay", "", "https://releases.grayjay.app/tutorials/author.jpeg")
+        override val alternativeName: String? = null;
         override val isLive: Boolean = false
         override val rating: IRating = RatingLikes(-1)
         override val viewCount: Long = -1
@@ -159,7 +159,6 @@ class TutorialFragment : MainFragment() {
             TutorialVideo(
                 uuid = "228be579-ec52-4d93-b9eb-ca74ec08c58a",
                 name = "How to install",
-                alternativeName = null,
                 description = "Learn how to install Grayjay.",
                 thumbnailUrl = "https://releases.grayjay.app/tutorials/how-to-install.jpg",
                 videoUrl = "https://releases.grayjay.app/tutorials/how-to-install.mp4",
@@ -168,7 +167,6 @@ class TutorialFragment : MainFragment() {
             TutorialVideo(
                 uuid = "3b99ebfe-2640-4643-bfe0-a0cf04261fc5",
                 name = "Getting started",
-                alternativeName = null,
                 description = "Learn how to get started with Grayjay. How do you install plugins?",
                 thumbnailUrl = "https://releases.grayjay.app/tutorials/getting-started.jpg",
                 videoUrl = "https://releases.grayjay.app/tutorials/getting-started.mp4",
@@ -177,7 +175,6 @@ class TutorialFragment : MainFragment() {
             TutorialVideo(
                 uuid = "793aa009-516c-4581-b82f-a8efdfef4c27",
                 name = "Is Grayjay free?",
-                alternativeName = null,
                 description = "Learn how Grayjay is monetized. How do we make money?",
                 thumbnailUrl = "https://releases.grayjay.app/tutorials/pay.jpg",
                 videoUrl = "https://releases.grayjay.app/tutorials/pay.mp4",
@@ -189,7 +186,6 @@ class TutorialFragment : MainFragment() {
             TutorialVideo(
                 uuid = "d2238d88-4252-4a91-a12d-b90c049bb7cf",
                 name = "Searching",
-                alternativeName = null,
                 description = "Learn about searching in Grayjay. How can I find channels, videos or playlists?",
                 thumbnailUrl = "https://releases.grayjay.app/tutorials/search.jpg",
                 videoUrl = "https://releases.grayjay.app/tutorials/search.mp4",
@@ -198,7 +194,6 @@ class TutorialFragment : MainFragment() {
             TutorialVideo(
                 uuid = "d2238d88-4252-4a91-a12d-b90c049bb7cf",
                 name = "Comments",
-                alternativeName = null,
                 description = "Learn about Polycentric comments in Grayjay.",
                 thumbnailUrl = "https://releases.grayjay.app/tutorials/polycentric.jpg",
                 videoUrl = "https://releases.grayjay.app/tutorials/polycentric.mp4",
@@ -207,7 +202,6 @@ class TutorialFragment : MainFragment() {
             TutorialVideo(
                 uuid = "94d36959-e3fc-4c24-a988-89147067a179",
                 name = "Casting",
-                alternativeName = null,
                 description = "Learn about casting in Grayjay. How do I show video on my TV?",
                 thumbnailUrl = "https://releases.grayjay.app/tutorials/how-to-cast.jpg",
                 videoUrl = "https://releases.grayjay.app/tutorials/how-to-cast.mp4",
@@ -216,7 +210,6 @@ class TutorialFragment : MainFragment() {
             TutorialVideo(
                 uuid = "5128c2e3-852b-4281-869b-efea2ec82a0e",
                 name = "Monetization",
-                alternativeName = null,
                 description = "How can I monetize as a creator?",
                 thumbnailUrl = "https://releases.grayjay.app/tutorials/monetization.jpg",
                 videoUrl = "https://releases.grayjay.app/tutorials/monetization.mp4",
