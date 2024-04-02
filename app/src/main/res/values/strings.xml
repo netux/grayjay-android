@@ -627,6 +627,7 @@
     <string name="you_have_too_many_subscriptions_for_the_following_plugins">\n\nYou have too many subscriptions for the following plugins:\n</string>
     <string name="posts">Posts</string>
     <string name="planned">Planned</string>
+    <string name="watched">Watched</string>
     <string name="no_results_found_swipe_down_to_refresh">No results found\nSwipe down to refresh</string>
     <string name="overlay">Overlay</string>
     <string name="reload">Reload</string>
@@ -754,6 +755,7 @@
     <string name="check_to_see_if_an_update_is_available">Check to see if an update is available.</string>
     <string name="toggle_alternative_metadata">Toggle Alternative Title/Thumbnail</string>
     <string name="no_autoupdate_on_this_fork">There is no auto-update on this fork, sorry :(\nCheck for updates in the releases section on GitHub: https://github.com/netux/grayjay-android/releases</string>
+    <string name="scroll_to_top">Scroll to top</string>
     <string-array name="home_screen_array">
         <item>Recommendations</item>
         <item>Subscriptions</item>

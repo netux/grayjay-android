@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.view.View
 import android.view.ViewGroup
+import androidx.recyclerview.widget.RecyclerView
 import com.futo.platformplayer.activities.MainActivity
 import com.futo.platformplayer.activities.SettingsActivity
 import com.futo.platformplayer.api.http.ManagedHttpClient
@@ -37,11 +38,17 @@ import com.futo.platformplayer.states.StateMeta
 import com.futo.platformplayer.states.StatePlatform
 import com.futo.platformplayer.states.StatePlayer
 import com.futo.platformplayer.states.StatePlaylists
+import com.futo.platformplayer.states.StateSubscriptionGroups
+import com.futo.platformplayer.states.StateSubscriptions
+import com.futo.platformplayer.views.AnyAdapterView
+import com.futo.platformplayer.views.AnyAdapterView.Companion.asAny
 import com.futo.platformplayer.views.LoaderView
+import com.futo.platformplayer.views.adapters.viewholders.SubscriptionGroupBarViewHolder
 import com.futo.platformplayer.views.overlays.slideup.SlideUpMenuFilters
 import com.futo.platformplayer.views.overlays.slideup.SlideUpMenuGroup
 import com.futo.platformplayer.views.overlays.slideup.SlideUpMenuItem
 import com.futo.platformplayer.views.overlays.slideup.SlideUpMenuOverlay
+import com.futo.platformplayer.views.overlays.slideup.SlideUpMenuRecycler
 import com.futo.platformplayer.views.overlays.slideup.SlideUpMenuTextInput
 import com.futo.platformplayer.views.pills.RoundButton
 import com.futo.platformplayer.views.pills.RoundButtonGroup
@@ -87,7 +94,37 @@ class UISlideOverlays {
                         SlideUpMenuItem(container.context, R.drawable.ic_notifications, "Notifications", "", "notifications", {
                             subscription.doNotifications = menu?.selectOption(null, "notifications", true, true) ?: subscription.doNotifications;
                         }, false),
+                        if(StateSubscriptionGroups.instance.getSubscriptionGroups().isNotEmpty())
+                            SlideUpMenuGroup(container.context, "Subscription Groups",
+                                "You can select which groups this subscription is part of.",
+                                -1, listOf()) else null,
+                        if(StateSubscriptionGroups.instance.getSubscriptionGroups().isNotEmpty())
+                            SlideUpMenuRecycler(container.context, "as") {
+                                val groups = ArrayList<SubscriptionGroup>(StateSubscriptionGroups.instance.getSubscriptionGroups()
+                                    .map { SubscriptionGroup.Selectable(it, it.urls.contains(subscription.channel.url)) }
+                                    .sortedBy { !it.selected });
+                                var adapter: AnyAdapterView<SubscriptionGroup, SubscriptionGroupBarViewHolder>? = null;
+                                adapter = it.asAny(groups, RecyclerView.HORIZONTAL) {
+                                    it.onClick.subscribe {
+                                        if(it is SubscriptionGroup.Selectable) {
+                                            val actualGroup = StateSubscriptionGroups.instance.getSubscriptionGroup(it.id)
+                                                ?: return@subscribe;
+                                            groups.clear();
+                                            if(it.selected)
+                                                actualGroup.urls.remove(subscription.channel.url);
+                                            else
+                                                actualGroup.urls.add(subscription.channel.url);
 
+                                            StateSubscriptionGroups.instance.updateSubscriptionGroup(actualGroup);
+                                            groups.addAll(StateSubscriptionGroups.instance.getSubscriptionGroups()
+                                                .map { SubscriptionGroup.Selectable(it, it.urls.contains(subscription.channel.url)) }
+                                                .sortedBy { !it.selected });
+                                            adapter?.notifyContentChanged();
+                                        }
+                                    }
+                                };
+                                return@SlideUpMenuRecycler adapter;
+                            } else null,
                         SlideUpMenuGroup(container.context, "Fetch Settings",
                             "Depending on the platform you might not need to enable a type for it to be available.",
                             -1, listOf()),
@@ -646,9 +683,17 @@ class UISlideOverlays {
             val watchLater = StatePlaylists.instance.getWatchLater();
             items.add(SlideUpMenuGroup(container.context, container.context.getString(R.string.actions), "actions",
                 (listOf(
-                    SlideUpMenuItem(container.context, R.drawable.ic_download, container.context.getString(R.string.download), container.context.getString(R.string.download_the_video), container.context.getString(R.string.download), {
-                            showDownloadVideoOverlay(video, container, true);
-                        }, false),
+                    SlideUpMenuItem(container.context, R.drawable.ic_download, container.context.getString(R.string.download), container.context.getString(R.string.download_the_video), "download", {
+                        showDownloadVideoOverlay(video, container, true);
+                    }, false),
+                    SlideUpMenuItem(container.context, R.drawable.ic_share, container.context.getString(R.string.share), "Share the video", "share", {
+                        val url = if(video.shareUrl.isNotEmpty()) video.shareUrl else video.url;
+                        container.context.startActivity(Intent.createChooser(Intent().apply {
+                            action = Intent.ACTION_SEND;
+                            putExtra(Intent.EXTRA_TEXT, url);
+                            type = "text/plain";
+                        }, null));
+                    }, false),
                     SlideUpMenuItem(container.context, R.drawable.ic_visibility_off, container.context.getString(R.string.hide_creator_from_home), "", "hide_creator", {
                         StateMeta.instance.addHiddenCreator(video.author.url);
                         UIDialogs.toast(container.context, "[${video.author.name}] hidden, you may need to reload home");
