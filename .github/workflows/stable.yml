@@ -1,0 +1,97 @@
+name: Build and Release Stable Release APKs
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Git repository
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+        fetch-depth: 0 # fetch all history and tags
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+    - name: Set up APK signing keys
+      run: |
+        mkdir -p /opt
+        
+        echo "${{ secrets.SIGNING_STORE_FILE_CONTENTS_BASE64_ENCODED }}" | base64 -d > $(pwd)/signing.jks
+        
+        echo "keyAlias=${{ secrets.SIGNING_KEY_ALIAS }}
+        keyPassword=${{ secrets.SIGNING_KEY_PASSWORD }}
+        storeFile=$(pwd)/signing.jks
+        storePassword=${{ secrets.SIGNING_STORE_PASSWORD }}" >> /opt/key.properties
+    - name: Assemble with Gradle
+      env:
+        CI_GIT_TAG: ${{ github.ref_name }}
+      run: |
+        chmod +x ./gradlew
+        ./gradlew assembleStableRelease --stacktrace
+    - name: Archive APK artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: apks
+        path: app/build/outputs/apk/stable/release
+  release:
+    runs-on: ubuntu-latest
+    needs: [ build ]
+    permissions:
+      contents: write
+    steps:
+      - name: Download APK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: apks
+          path: apks
+      - name: Get upstream release version
+        id: get_upstream_release_version
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const upstreamReleaseVersion = '${{ github.ref_name }}'.split('-')[0];
+            console.log('Upstream release version:', upstreamReleaseVersion);
+            return upstreamReleaseVersion;
+          result-encoding: string
+      - name: Create draft release and upload APK assets
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const path = require('node:path');
+            const fs = require('node:fs/promises');
+
+            const release = await github.rest.repos.createRelease({
+              ... context.repo,
+              name: 'Grayjay with alternative metadata support (v${{ steps.get_upstream_release_version.outputs.result }})',
+              draft: true,
+              tag_name: '${{ github.ref_name }}',
+              generate_release_notes: true
+            });
+
+            console.log('Draft release created:', release.data.html_url);
+
+            for await (const filePath of (await glob.create('apks/*')).globGenerator()) {
+              const fileName = path.basename(filePath);
+
+              console.log(`Uploading ${fileName} asset to draft release`);
+
+              const data = await fs.readFile(filePath);
+              await github.rest.repos.uploadReleaseAsset({
+                ... context.repo,
+                release_id: release.data.id,
+                name: fileName,
+                data
+              });
+            
+              console.log(`${fileName} asset uploaded to draft release`);
+            }

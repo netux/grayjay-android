@@ -9,7 +9,8 @@ plugins {
 }
 
 ext {
-    _gitVersionTag = grgit.describe().split('-')[0]
+    _gitFullTag = System.getenv('CI_GIT_TAG') ?: grgit.describe()
+    _gitVersionTag = _gitFullTag.split('-')[0]
     gitVersionCode = _gitVersionTag != null && _gitVersionTag.isInteger() ? _gitVersionTag.toInteger() : 1
     gitVersionName = gitVersionCode + '-with_alternative_metadata'
 }
