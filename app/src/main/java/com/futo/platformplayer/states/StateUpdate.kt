@@ -229,12 +229,37 @@ class StateUpdate {
     }
 
     fun downloadChangelog(client: ManagedHttpClient, version: Int): String? {
-        val response = client.get("${CHANGELOG_BASE_URL}/${version}");
-        if (!response.isOk || response.body == null) {
-            return null;
+        var upstreamChangelog: String? = null;
+        var netuxForkChangelog: String? = null;
+
+        if (version >= 222) {
+            val netuxForkResponse = client.get("${NETUX_FORK_RELEASE_BY_TAG_DATA_BASE_URL}/${version}-with-alternative-metadata");
+            if (netuxForkResponse.isOk && netuxForkResponse.body != null) {
+                val releaseData = Json.parseToJsonElement(netuxForkResponse.body.string()).jsonObject;
+                netuxForkChangelog = releaseData["body"]?.jsonPrimitive?.content
+                    ?.replace("""\*\*Full Changelog\*\*:[^\n]+""".toRegex(), "")
+                    ?.trim();
+            }
         }
 
-        return response.body.string().trim();
+        val response = client.get("${CHANGELOG_BASE_URL}/${version}");
+        if (response.isOk && response.body != null) {
+            upstreamChangelog = response.body.string().trim();
+        }
+
+        val changelog = StringBuilder();
+        if (netuxForkChangelog != null) {
+            changelog.append("Alternative Metadata fork:\n\n");
+            changelog.append(netuxForkChangelog);
+        }
+        if (upstreamChangelog != null) {
+            if (netuxForkChangelog != null) {
+                changelog.append("\n\n-----------\n\n");
+            }
+            changelog.append(upstreamChangelog);
+        }
+
+        return changelog.toString();
     }
 
     companion object {
@@ -273,6 +298,7 @@ class StateUpdate {
         */
         val CHANGELOG_BASE_URL = "https://releases.grayjay.app/changelogs";
         val NETUX_FORK_LATEST_RELEASE_DATA_URL = "https://api.github.com/repos/netux/grayjay-android/releases/latest";
+        val NETUX_FORK_RELEASE_BY_TAG_DATA_BASE_URL = "https://api.github.com/repos/netux/grayjay-android/releases/tags";
         val NETUX_FORK_APK_URL = "https://github.com/netux/grayjay-android/releases/latest/download/app-stable-$DESIRED_ABI-release.apk";
 
         fun finish() {
