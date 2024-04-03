@@ -10,6 +10,9 @@ import com.futo.platformplayer.logging.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -201,7 +204,7 @@ class StateUpdate {
         var outputStream: OutputStream? = null;
 
         try {
-            val response = client.get(APK_URL);
+            val response = client.get(NETUX_FORK_APK_URL);
             if (response.isOk && response.body != null) {
                 apkStream = response.body.byteStream();
                 outputStream = destinationFile.outputStream();
@@ -216,12 +219,13 @@ class StateUpdate {
     }
 
     fun downloadVersionCode(client: ManagedHttpClient): Int? {
-        val response = client.get(VERSION_URL);
+        val response = client.get(NETUX_FORK_LATEST_RELEASE_DATA_URL);
         if (!response.isOk || response.body == null) {
             return null;
         }
 
-        return response.body.string().trim().toInt();
+        val releaseData = Json.parseToJsonElement(response.body.string()).jsonObject;
+        return releaseData["tag_name"]?.jsonPrimitive?.content?.split("-")?.get(0)?.toInt();
     }
 
     fun downloadChangelog(client: ManagedHttpClient, version: Int): String? {
@@ -255,6 +259,7 @@ class StateUpdate {
 
             throw Exception("App is not compatible. Supported ABIS: ${Build.SUPPORTED_ABIS.joinToString()}}.");
         };
+        /*
         val VERSION_URL = if (BuildConfig.IS_UNSTABLE_BUILD) {
             "https://releases.grayjay.app/version-unstable.txt"
         } else {
@@ -265,7 +270,10 @@ class StateUpdate {
         } else {
             "https://releases.grayjay.app/app-$DESIRED_ABI-release.apk"
         }
+        */
         val CHANGELOG_BASE_URL = "https://releases.grayjay.app/changelogs";
+        val NETUX_FORK_LATEST_RELEASE_DATA_URL = "https://api.github.com/repos/netux/grayjay-android/releases/latest";
+        val NETUX_FORK_APK_URL = "https://github.com/netux/grayjay-android/releases/latest/download/app-stable-$DESIRED_ABI-release.apk";
 
         fun finish() {
             _instance?.let {

@@ -125,7 +125,7 @@ class AutoUpdateDialog(context: Context?) : AlertDialog(context) {
                     install(inputStream, dataLength);
                 } else {
                     val client = ManagedHttpClient();
-                    val response = client.get(StateUpdate.APK_URL);
+                    val response = client.get(StateUpdate.NETUX_FORK_APK_URL);
                     if (response.isOk && response.body != null) {
                         inputStream = response.body.byteStream();
                         val dataLength = response.body.contentLength();

@@ -656,30 +656,20 @@ class Settings : FragmentedStorageFileJson() {
     }
 
 
-    /*
     @FormField(R.string.auto_update, "group", R.string.configure_the_auto_updater, 15)
-    */
-    @FormField(R.string.auto_update, "group", R.string.no_autoupdate_on_this_fork, 15)
     var autoUpdate = AutoUpdate();
     @Serializable
     class AutoUpdate {
-        /*
         @FormField(R.string.check, FieldForm.DROPDOWN, -1, 0)
         @DropdownFieldOptionsId(R.array.auto_update_when_array)
         var check: Int = 0;
-        */
-        var check: Int = 1; // Never
 
-        /*
         @FormField(R.string.background_download, FieldForm.DROPDOWN, R.string.configure_if_background_download_should_be_used, 1)
         @DropdownFieldOptionsId(R.array.background_download)
-        */
         var backgroundDownload: Int = 0;
 
-        /*
         @FormField(R.string.download_when, FieldForm.DROPDOWN, R.string.configure_when_updates_should_be_downloaded, 2)
         @DropdownFieldOptionsId(R.array.when_download)
-        */
         var whenDownload: Int = 0;
 
         fun shouldDownload(): Boolean {
@@ -695,9 +685,7 @@ class Settings : FragmentedStorageFileJson() {
             return check == 0 && !BuildConfig.IS_PLAYSTORE_BUILD;
         }
 
-        /*
         @FormField(R.string.manual_check, FieldForm.BUTTON, R.string.manually_check_for_updates, 3)
-        */
         fun manualCheck() {
             if (!BuildConfig.IS_PLAYSTORE_BUILD) {
                 SettingsActivity.getActivity()?.let {
@@ -716,9 +704,7 @@ class Settings : FragmentedStorageFileJson() {
             }
         }
 
-        /*
         @FormField(R.string.view_changelog, FieldForm.BUTTON, R.string.review_the_current_and_past_changelogs, 4)
-        */
         fun viewChangelog() {
             SettingsActivity.getActivity()?.let {
                 UIDialogs.toast(it.getString(R.string.retrieving_changelog));

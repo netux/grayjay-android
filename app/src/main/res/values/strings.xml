@@ -754,7 +754,6 @@
     <string name="zoom">Zoom</string>
     <string name="check_to_see_if_an_update_is_available">Check to see if an update is available.</string>
     <string name="toggle_alternative_metadata">Toggle Alternative Title/Thumbnail</string>
-    <string name="no_autoupdate_on_this_fork">There is no auto-update on this fork, sorry :(\nCheck for updates in the releases section on GitHub: https://github.com/netux/grayjay-android/releases</string>
     <string name="scroll_to_top">Scroll to top</string>
     <string-array name="home_screen_array">
         <item>Recommendations</item>
