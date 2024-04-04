@@ -4,6 +4,7 @@ import android.net.Uri
 import com.futo.platformplayer.SignatureProvider
 import com.futo.platformplayer.api.media.Serializer
 import com.futo.platformplayer.engine.IV8PluginConfig
+import com.futo.platformplayer.others.Version
 import com.futo.platformplayer.states.StatePlugins
 import java.net.URL
 import java.util.UUID
@@ -20,7 +21,10 @@ class SourcePluginConfig(
     //Script
     val repositoryUrl: String? = null,
     val scriptUrl: String = "",
-    val version: Int = -1,
+
+    @kotlinx.serialization.SerialName("version")
+    val versionUpstreamMajor: Int = -1,
+    val versionForkMinor: Int? = null,
 
     val iconUrl: String? = null,
     var id: String = UUID.randomUUID().toString(),
@@ -47,6 +51,9 @@ class SourcePluginConfig(
     var supportedClaimTypes: List<Int> = listOf(),
     var primaryClaimFieldType: Int? = null
 ) : IV8PluginConfig {
+
+    val version: Version
+        get() = Version(this.versionUpstreamMajor, this.versionForkMinor ?: 0);
 
     val absoluteIconUrl: String? get() = resolveAbsoluteUrl(iconUrl, sourceUrl);
     val absoluteScriptUrl: String get() = resolveAbsoluteUrl(scriptUrl, sourceUrl)!!;
