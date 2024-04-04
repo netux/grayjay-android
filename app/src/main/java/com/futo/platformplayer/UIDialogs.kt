@@ -35,6 +35,7 @@ import com.futo.platformplayer.dialogs.ProgressDialog
 import com.futo.platformplayer.engine.exceptions.PluginException
 import com.futo.platformplayer.logging.Logger
 import com.futo.platformplayer.models.ImportCache
+import com.futo.platformplayer.others.Version
 import com.futo.platformplayer.states.StateApp
 import com.futo.platformplayer.states.StateBackup
 import com.futo.platformplayer.stores.v2.ManagedStore
@@ -305,7 +306,7 @@ class UIDialogs {
             showDialog(context, R.drawable.ic_error, text, null, null, 0, cancelButtonAction, confirmButtonAction)
         }
 
-        fun showUpdateAvailableDialog(context: Context, lastVersion: Int, hideExceptionButtons: Boolean = false) {
+        fun showUpdateAvailableDialog(context: Context, lastVersion: Version, hideExceptionButtons: Boolean = false) {
             val dialog = AutoUpdateDialog(context);
             registerDialogOpened(dialog);
             dialog.setOnDismissListener { registerDialogClosed(dialog) };
@@ -317,7 +318,7 @@ class UIDialogs {
             }
         }
 
-        fun showChangelogDialog(context: Context, lastVersion: Int) {
+        fun showChangelogDialog(context: Context, lastVersion: Version) {
             val dialog = ChangelogDialog(context);
             registerDialogOpened(dialog);
             dialog.setOnDismissListener { registerDialogClosed(dialog) };

@@ -1,39 +1,30 @@
 package com.futo.platformplayer.dialogs
 
 import android.app.AlertDialog
-import android.app.PendingIntent.*
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageInstaller
 import android.graphics.drawable.Animatable
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
 import android.view.LayoutInflater
 import android.view.View
-import android.view.WindowManager
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.lifecycle.lifecycleScope
 import com.futo.platformplayer.*
-import com.futo.platformplayer.receivers.InstallReceiver
 import com.futo.platformplayer.api.http.ManagedHttpClient
-import com.futo.platformplayer.api.media.models.PlatformAuthorLink
-import com.futo.platformplayer.api.media.structures.IPager
 import com.futo.platformplayer.constructs.TaskHandler
-import com.futo.platformplayer.fragment.mainactivity.main.ChannelFragment
 import com.futo.platformplayer.logging.Logger
+import com.futo.platformplayer.others.Version
 import com.futo.platformplayer.states.StateApp
-import com.futo.platformplayer.states.StatePlatform
 import com.futo.platformplayer.states.StateUpdate
-import kotlinx.coroutines.*
-import java.io.File
-import java.io.InputStream
 
 class ChangelogDialog(context: Context?) : AlertDialog(context) {
     companion object {
         private val TAG = "ChangelogDialog";
+
+        // TODO(netux): get max patch per version, somehow
+        private const val MAX_VERSION_FORK_PATCH = 10;
     }
 
     private lateinit var _textVersion: TextView;
@@ -44,11 +35,11 @@ class ChangelogDialog(context: Context?) : AlertDialog(context) {
     private lateinit var _buttonUpdate: LinearLayout;
     private lateinit var _imageSpinner: ImageView;
     private var _isLoading: Boolean = false;
-    private var _version: Int = 0;
-    private var _maxVersion: Int = 0;
+    private var _version: Version = Version(0, 0);
+    private var _maxVersion: Version = Version(0, 0);
     private var _managedHttpClient = ManagedHttpClient();
 
-    private val _taskDownloadChangelog = TaskHandler<Int, String?>(StateApp.instance.scopeGetter, { version -> StateUpdate.instance.downloadChangelog(_managedHttpClient, version) })
+    private val _taskDownloadChangelog = TaskHandler<Version, String?>(StateApp.instance.scopeGetter, { version -> StateUpdate.instance.downloadChangelog(_managedHttpClient, version) })
         .success { setChangelog(it); }
         .exception<Throwable> {
             Logger.w(TAG, "Failed to load changelog.", it);
@@ -70,11 +61,23 @@ class ChangelogDialog(context: Context?) : AlertDialog(context) {
         _textChangelog.movementMethod = ScrollingMovementMethod();
 
         _buttonPrevious.setOnClickListener {
-            setVersion(Math.max(0, _version - 1));
+            var prevVersion =
+                if (_version.forkMinor == 0) Version(_version.upstreamMajor - 1, MAX_VERSION_FORK_PATCH)
+                else Version(_version.upstreamMajor, _version.forkMinor - 1);
+            if (prevVersion <= Version(0, 0)) {
+                prevVersion = Version(0, 0);
+            }
+            setVersion(prevVersion);
         };
 
         _buttonNext.setOnClickListener {
-            setVersion(Math.min(_maxVersion, _version + 1));
+            var nextVersion =
+                if (_version.forkMinor >= MAX_VERSION_FORK_PATCH) Version(_version.upstreamMajor + 1, 0)
+                else Version(_version.upstreamMajor, _version.forkMinor + 1);
+            if (nextVersion >= _maxVersion) {
+                nextVersion = _maxVersion;
+            }
+            setVersion(nextVersion);
         };
 
         _buttonClose.setOnClickListener {
@@ -92,23 +95,23 @@ class ChangelogDialog(context: Context?) : AlertDialog(context) {
         super.dismiss()
     }
 
-    fun setMaxVersion(version: Int) {
+    fun setMaxVersion(version: Version) {
         _maxVersion = version;
         setVersion(version);
 
-        val currentVersion = BuildConfig.VERSION_CODE;
+        val currentVersion = BuildConfig.FULL_VERSION_CODE;
         _buttonUpdate.visibility = if (currentVersion == _maxVersion) View.GONE else View.VISIBLE;
     }
 
-    private fun setVersion(version: Int) {
+    private fun setVersion(version: Version) {
         if (_version == version) {
             return;
         }
 
         _version = version;
-        _buttonPrevious.visibility = if (_version == 0) View.GONE else View.VISIBLE;
+        _buttonPrevious.visibility = if (_version == Version(0, 0)) View.GONE else View.VISIBLE;
         _buttonNext.visibility = if (_version == _maxVersion) View.GONE else View.VISIBLE;
-        _textVersion.text = version.toString();
+        _textVersion.text = _version.toString();
         setIsLoading(true);
         _taskDownloadChangelog.run(_version);
     }

@@ -7,6 +7,7 @@ import com.futo.platformplayer.UIDialogs
 import com.futo.platformplayer.api.http.ManagedHttpClient
 import com.futo.platformplayer.copyToOutputStream
 import com.futo.platformplayer.logging.Logger
+import com.futo.platformplayer.others.Version
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -41,7 +42,7 @@ class StateUpdate {
             }
 
             if (latestVersion != null) {
-                val currentVersion = BuildConfig.VERSION_CODE;
+                val currentVersion = BuildConfig.FULL_VERSION_CODE;
                 Logger.i(TAG, "Current version ${currentVersion} latest version ${latestVersion}.");
 
                 if (latestVersion <= currentVersion) {
@@ -69,7 +70,7 @@ class StateUpdate {
                     cachedVersionInvalid = true;
                 } else {
                     try {
-                        val downloadedVersion = versionOutputFile.readText().toInt();
+                        val downloadedVersion = Version.fromString(versionOutputFile.readText());
                         Logger.i(TAG, "Downloaded version is $downloadedVersion.");
                         if (downloadedVersion != latestVersion) {
                             Logger.i(TAG, "Downloaded version is not newest version.");
@@ -164,7 +165,7 @@ class StateUpdate {
             val latestVersion = downloadVersionCode(client);
 
             if (latestVersion != null) {
-                val currentVersion = BuildConfig.VERSION_CODE;
+                val currentVersion = BuildConfig.FULL_VERSION_CODE;
                 Logger.i(TAG, "Current version ${currentVersion} latest version ${latestVersion}.");
 
                 if (latestVersion > currentVersion) {
@@ -218,21 +219,22 @@ class StateUpdate {
         }
     }
 
-    fun downloadVersionCode(client: ManagedHttpClient): Int? {
+    fun downloadVersionCode(client: ManagedHttpClient): Version? {
         val response = client.get(NETUX_FORK_LATEST_RELEASE_DATA_URL);
         if (!response.isOk || response.body == null) {
             return null;
         }
 
         val releaseData = Json.parseToJsonElement(response.body.string()).jsonObject;
-        return releaseData["tag_name"]?.jsonPrimitive?.content?.split("-")?.get(0)?.toInt();
+        val versionStr = releaseData["tag_name"]?.jsonPrimitive?.content?.split("-")?.get(0);
+        return if(versionStr != null) Version.fromString(versionStr) else null;
     }
 
-    fun downloadChangelog(client: ManagedHttpClient, version: Int): String? {
+    fun downloadChangelog(client: ManagedHttpClient, version: Version): String? {
         var upstreamChangelog: String? = null;
         var netuxForkChangelog: String? = null;
 
-        if (version >= 222) {
+        if (version >= Version(222, 0)) {
             val netuxForkResponse = client.get("${NETUX_FORK_RELEASE_BY_TAG_DATA_BASE_URL}/${version}-with-alternative-metadata");
             if (netuxForkResponse.isOk && netuxForkResponse.body != null) {
                 val releaseData = Json.parseToJsonElement(netuxForkResponse.body.string()).jsonObject;
@@ -242,9 +244,9 @@ class StateUpdate {
             }
         }
 
-        val response = client.get("${CHANGELOG_BASE_URL}/${version}");
-        if (response.isOk && response.body != null) {
-            upstreamChangelog = response.body.string().trim();
+        val upstreamResponse = client.get("${CHANGELOG_BASE_URL}/${version.upstreamMajor}");
+        if (upstreamResponse.isOk && upstreamResponse.body != null) {
+            upstreamChangelog = upstreamResponse.body.string().trim();
         }
 
         val changelog = StringBuilder();
@@ -259,7 +261,7 @@ class StateUpdate {
             changelog.append(upstreamChangelog);
         }
 
-        return changelog.toString();
+        return if (changelog.isEmpty()) null else changelog.toString();
     }
 
     companion object {

@@ -22,6 +22,7 @@ import com.futo.platformplayer.UIDialogs
 import com.futo.platformplayer.api.http.ManagedHttpClient
 import com.futo.platformplayer.copyToOutputStream
 import com.futo.platformplayer.logging.Logger
+import com.futo.platformplayer.others.Version
 import com.futo.platformplayer.receivers.InstallReceiver
 import com.futo.platformplayer.states.StateUpdate
 import kotlinx.coroutines.Dispatchers
@@ -43,7 +44,7 @@ class AutoUpdateDialog(context: Context?) : AlertDialog(context) {
     private lateinit var _textProgress: TextView;
     private lateinit var _updateSpinner: ImageView;
     private lateinit var _buttonShowChangelog: Button;
-    private var _maxVersion: Int = 0;
+    private var _maxVersion: Version = Version(0, 0);
 
     private var _updating: Boolean = false;
     private var _apkFile: File? = null;
@@ -217,7 +218,7 @@ class AutoUpdateDialog(context: Context?) : AlertDialog(context) {
         }
     }
 
-    fun setMaxVersion(version: Int) {
+    fun setMaxVersion(version: Version) {
         _maxVersion = version;
     }
 }

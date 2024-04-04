@@ -10,12 +10,12 @@ plugins {
 
 ext {
     _gitFullTag = System.getenv('CI_GIT_TAG') ?: grgit.describe()
-    _gitVersionTag = _gitFullTag.split('-')[0]
-    gitVersionCode = _gitVersionTag != null && _gitVersionTag.isInteger() ? _gitVersionTag.toInteger() : 1
-    gitVersionName = gitVersionCode + '-with_alternative_metadata'
+    gitTagVersion = _gitFullTag.split('-')[0]
+    gitVersionCode = gitTagVersion != null && gitTagVersion.isFloat() ? gitTagVersion.toFloat().round() : 1
+    gitVersionName = gitTagVersion + '-with_alternative_metadata'
 }
 
-println("Git Version Tag: $_gitVersionTag")
+println("Git Version Tag: $gitTagVersion")
 println("Version Name: $gitVersionName")
 println("Version Code: $gitVersionCode")
 
@@ -103,6 +103,7 @@ android {
         targetSdk 34
         versionCode gitVersionCode
         versionName gitVersionName
+        buildConfigField "com.futo.platformplayer.others.Version", "FULL_VERSION_CODE", "com.futo.platformplayer.others.Version.Companion.fromString(\"${gitTagVersion.toString()}\")"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
