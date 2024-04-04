@@ -32,6 +32,12 @@ jobs:
         keyPassword=${{ secrets.SIGNING_KEY_PASSWORD }}
         storeFile=$(pwd)/signing.jks
         storePassword=${{ secrets.SIGNING_STORE_PASSWORD }}" >> /opt/key.properties
+    - name: Sign all sources
+      env:
+        SIGNING_PRIVATE_KEY: ${{ secrets.SOURCE_SIGNING_PRIVATE_KEY_WITHOUT_HEADER_FOOTER }}
+      run: |
+        chmod +x ./sign-all-sources.sh
+        ./sign-all-sources.sh
     - name: Assemble with Gradle
       env:
         CI_GIT_TAG: ${{ github.ref_name }}
