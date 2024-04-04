@@ -175,8 +175,6 @@
     <string name="volume">音量</string>
     <string name="changelog">更新日志</string>
     <string name="some_example_changelog">一些示例的更新日志。</string>
-    <string name="previous">上一个</string>
-    <string name="next">下一个</string>
     <string name="comment">评论</string>
     <string name="str_import">导入</string>
     <string name="my_playlist_name">我的播放列表名称</string>

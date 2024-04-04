@@ -175,8 +175,6 @@
     <string name="volume">Volume</string>
     <string name="changelog">Registro de Mudanças</string>
     <string name="some_example_changelog">Algum exemplo de registro de mudanças.</string>
-    <string name="previous">Anterior</string>
-    <string name="next">Próximo</string>
     <string name="comment">Comentário</string>
     <string name="str_import">Importar</string>
     <string name="my_playlist_name">Nome da Minha Lista de Reprodução</string>

@@ -162,8 +162,6 @@
     <string name="volume">الصوت</string>
     <string name="changelog">سجل التغييرات</string>
     <string name="some_example_changelog">بعض أمثلة سجل التغييرات.</string>
-    <string name="previous">السابق</string>
-    <string name="next">التالي</string>
     <string name="comment">تعليق</string>
     <string name="str_import">استيراد</string>
     <string name="my_playlist_name">اسم قائمة التشغيل الخاصة بي</string>

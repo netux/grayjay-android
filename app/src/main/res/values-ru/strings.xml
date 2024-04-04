@@ -171,8 +171,6 @@
     <string name="volume">Громкость</string>
     <string name="changelog">Список изменений</string>
     <string name="some_example_changelog">Пример списка изменений.</string>
-    <string name="previous">Предыдущий</string>
-    <string name="next">Следующий</string>
     <string name="comment">Комментарий</string>
     <string name="str_import">Импорт</string>
     <string name="my_playlist_name">Имя моего плейлиста</string>

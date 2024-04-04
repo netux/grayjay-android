@@ -139,8 +139,6 @@
     <string name="volume">ボリューム</string>
     <string name="changelog">変更履歴</string>
     <string name="some_example_changelog">いくつかの例の変更履歴。</string>
-    <string name="previous">前</string>
-    <string name="next">次</string>
     <string name="comment">コメント</string>
     <string name="str_import">インポート</string>
     <string name="my_playlist_name">マイプレイリスト名</string>

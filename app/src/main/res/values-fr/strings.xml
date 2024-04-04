@@ -175,8 +175,6 @@
     <string name="volume">Volume</string>
     <string name="changelog">Journal des modifications</string>
     <string name="some_example_changelog">Un exemple de journal des modifications.</string>
-    <string name="previous">Précédent</string>
-    <string name="next">Suivant</string>
     <string name="comment">Commentaire</string>
     <string name="str_import">Importer</string>
     <string name="my_playlist_name">Nom de ma playlist</string>

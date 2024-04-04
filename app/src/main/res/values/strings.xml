@@ -190,8 +190,10 @@
     <string name="volume">Volume</string>
     <string name="changelog">Changelog</string>
     <string name="some_example_changelog">Some example changelog.</string>
-    <string name="previous">Previous</string>
-    <string name="next">Next</string>
+    <string name="previous_major">Previous Major</string>
+    <string name="previous_minor">Previous Minor</string>
+    <string name="next_major">Next Major</string>
+    <string name="next_minor">Next Minor</string>
     <string name="comment">Comment</string>
     <string name="str_import">Import</string>
     <string name="my_playlist_name">My Playlist Name</string>

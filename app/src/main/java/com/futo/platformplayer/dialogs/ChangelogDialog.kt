@@ -22,15 +22,14 @@ import com.futo.platformplayer.states.StateUpdate
 class ChangelogDialog(context: Context?) : AlertDialog(context) {
     companion object {
         private val TAG = "ChangelogDialog";
-
-        // TODO(netux): get max patch per version, somehow
-        private const val MAX_VERSION_FORK_PATCH = 10;
     }
 
     private lateinit var _textVersion: TextView;
     private lateinit var _textChangelog: TextView;
-    private lateinit var _buttonPrevious: Button;
-    private lateinit var _buttonNext: Button;
+    private lateinit var _buttonPreviousMajor: Button;
+    private lateinit var _buttonPreviousMinor: Button;
+    private lateinit var _buttonNextMajor: Button;
+    private lateinit var _buttonNextMinor: Button;
     private lateinit var _buttonClose: Button;
     private lateinit var _buttonUpdate: LinearLayout;
     private lateinit var _imageSpinner: ImageView;
@@ -52,29 +51,41 @@ class ChangelogDialog(context: Context?) : AlertDialog(context) {
 
         _textVersion = findViewById(R.id.text_version);
         _textChangelog = findViewById(R.id.text_changelog);
-        _buttonPrevious = findViewById(R.id.button_previous);
-        _buttonNext = findViewById(R.id.button_next);
+        _buttonPreviousMajor = findViewById(R.id.button_previous_major);
+        _buttonPreviousMinor = findViewById(R.id.button_previous_minor);
+        _buttonNextMajor = findViewById(R.id.button_next_major);
+        _buttonNextMinor = findViewById(R.id.button_next_minor);
         _buttonClose = findViewById(R.id.button_close);
         _buttonUpdate = findViewById(R.id.button_update);
         _imageSpinner = findViewById(R.id.image_spinner);
 
         _textChangelog.movementMethod = ScrollingMovementMethod();
 
-        _buttonPrevious.setOnClickListener {
-            var prevVersion =
-                if (_version.forkMinor == 0) Version(_version.upstreamMajor - 1, MAX_VERSION_FORK_PATCH)
-                else Version(_version.upstreamMajor, _version.forkMinor - 1);
-            if (prevVersion <= Version(0, 0)) {
-                prevVersion = Version(0, 0);
-            }
-            setVersion(prevVersion);
+        _buttonPreviousMajor.setOnClickListener {
+            setVersion(Version(Math.max(0, _version.upstreamMajor - 1), 0));
         };
 
-        _buttonNext.setOnClickListener {
-            var nextVersion =
-                if (_version.forkMinor >= MAX_VERSION_FORK_PATCH) Version(_version.upstreamMajor + 1, 0)
-                else Version(_version.upstreamMajor, _version.forkMinor + 1);
-            if (nextVersion >= _maxVersion) {
+        _buttonPreviousMinor.setOnClickListener {
+            var major = _version.upstreamMajor;
+            var minor = _version.forkMinor - 1;
+            if (minor < 0) {
+                major -= 1;
+                minor = 0;
+            }
+            setVersion(Version(major, minor));
+        };
+
+        _buttonNextMajor.setOnClickListener {
+            var nextVersion = Version(_version.upstreamMajor + 1, 0);
+            if (nextVersion > _maxVersion) {
+                nextVersion = _maxVersion;
+            }
+            setVersion(nextVersion);
+        };
+
+        _buttonNextMinor.setOnClickListener {
+            var nextVersion = Version(_version.upstreamMajor, _version.forkMinor + 1);
+            if (nextVersion > _maxVersion) {
                 nextVersion = _maxVersion;
             }
             setVersion(nextVersion);
@@ -109,8 +120,10 @@ class ChangelogDialog(context: Context?) : AlertDialog(context) {
         }
 
         _version = version;
-        _buttonPrevious.visibility = if (_version == Version(0, 0)) View.GONE else View.VISIBLE;
-        _buttonNext.visibility = if (_version == _maxVersion) View.GONE else View.VISIBLE;
+        _buttonPreviousMajor.visibility = if (_version.upstreamMajor <= 0) View.GONE else View.VISIBLE;
+        _buttonPreviousMinor.visibility = if (_version <= Version(0, 0)) View.GONE else View.VISIBLE;
+        _buttonNextMajor.visibility = if (_version.upstreamMajor >= _maxVersion.upstreamMajor) View.GONE else View.VISIBLE;
+        _buttonNextMinor.visibility = if (_version >= _maxVersion) View.GONE else View.VISIBLE;
         _textVersion.text = _version.toString();
         setIsLoading(true);
         _taskDownloadChangelog.run(_version);

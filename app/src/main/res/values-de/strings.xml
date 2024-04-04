@@ -165,8 +165,6 @@
     <string name="volume">Lautstärke</string>
     <string name="changelog">Änderungsprotokoll</string>
     <string name="some_example_changelog">Ein Beispiel für ein Änderungsprotokoll.</string>
-    <string name="previous">Vorherige</string>
-    <string name="next">Nächste</string>
     <string name="comment">Kommentar</string>
     <string name="str_import">Importieren</string>
     <string name="my_playlist_name">Mein Playlist-Name</string>
