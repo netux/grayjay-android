@@ -4,6 +4,10 @@ This is a fork of [FUTO's PlatformPlayer](https://gitlab.futo.org/videostreaming
 
 This version is required for [my fork of FUTO's YouTube source with DeArrow support](https://github.com/netux/grayjay-source-youtube).
 
+## Download
+
+Get the latest APK for your device in the [Releases tab](https://github.com/netux/grayjay-android/releases) (under Assets).
+
 ## Migrating from the original app
 
 1. Install this app
