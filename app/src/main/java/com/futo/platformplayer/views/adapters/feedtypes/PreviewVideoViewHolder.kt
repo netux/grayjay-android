@@ -40,7 +40,7 @@ class PreviewVideoViewHolder : ContentPreviewViewHolder {
 
     private fun toggleAlternativeMetadata(video: IPlatformVideo) {
         view.isAlternativeMetadataShown = !view.isAlternativeMetadataShown;
-        view.bind(video);
+        this.bind(video);
     }
 
     override fun bind(content: IPlatformContent) = view.bind(content);
