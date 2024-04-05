@@ -2108,6 +2108,7 @@ class VideoDetailView : ConstraintLayout {
         _player.setMetadata(videoName, (video as IPlatformVideo).author.name);
 
         setAlternativeMetadataButtonState(_buttonToggleAlternativeMetadata, _isAlternativeMetadataShown);
+        setAlternativeMetadataButtonState(_buttonToggleAlternativeMetadataMinimized, _isAlternativeMetadataShown);
     }
 
     private fun getVideoName(video: IPlatformVideo, alternative: Boolean): String {
@@ -2119,6 +2120,7 @@ class VideoDetailView : ConstraintLayout {
             _buttonToggleAlternativeMetadata.visibility = VISIBLE;
             _buttonToggleAlternativeMetadataMinimized.visibility = VISIBLE;
             setAlternativeMetadataButtonState(_buttonToggleAlternativeMetadata, _isAlternativeMetadataShown);
+            setAlternativeMetadataButtonState(_buttonToggleAlternativeMetadataMinimized, _isAlternativeMetadataShown);
         } else {
             _buttonToggleAlternativeMetadata.visibility = GONE;
             _buttonToggleAlternativeMetadataMinimized.visibility = GONE;
