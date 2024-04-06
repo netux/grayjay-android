@@ -13,9 +13,24 @@ Get the latest APK for your device in the [Releases tab](https://github.com/netu
 1. Install this app
 2. On the original app, at the bottom, press More → Settings
 3. Scroll down to the Backup section, and press Export Data, and export all data as a zip file
-    - Make sure to give the file a name via the text field on the bottom of your screen, otherwise it will be saved as (invalid).zip and you may have trouble importing it into the other app.
+   - Make sure to give the file a name via the text field on the bottom of your screen, otherwise it will be saved as (invalid).zip and you may have trouble importing it into the other app.
 4. On your preferred file explorer app, locate the file you just exported and look for an option to "Open with Grayjay (with Alternative Metadata)"
 5. Let the import go through
+
+## Contributing
+
+Thanks in taking interest on contributing to Grayjay with Alternative Metadata support!
+Most of the stuff in the original [Contribution guide](./CONTRIBUTION.md) also applies here. But there are some other considerations to make:
+
+Please note that there are two main branches:
+
+- `feature/alternative-metadata` is purely functional. It contains the additions to accept alternative metadata from sources and display a toggle for them in the UI of videos.
+   - This is meant to be as similar as possible with FUTO's original Grayjay app to facilitate merging upstream changes.
+- `with-alternative-metadata` is the true "main" branch. It integrates `feature/alternative-metadata`, while having some dev QoL features, CI/CD, etc.
+   - This is the branch from which releases are based off.
+
+If you wish to do changes to the alternative metadata functionality (new features, bug fixes), please target the `feature/alternative-metadata` branch.
+If you wish to do dev-centric changes (e.g. update GitHub workflow), please target the `with-alternative-metadata` branch.
 
 Below is the original README from FUTO:
 
